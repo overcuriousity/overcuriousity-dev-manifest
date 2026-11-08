@@ -43,23 +43,12 @@ impl TopBar {
         }
     }
 
-    fn theme_button(&self) -> IconButton {
-        let current = self.prefs.theme;
-        let icon = match current {
-            Theme::System => Icon::ThemeSystem,
-            Theme::Light => Icon::ThemeLight,
-            Theme::Dark => Icon::ThemeDark,
-        };
-        let next = match current.next() {
+    fn theme_label(&self) -> &'static str {
+        match self.prefs.theme.next() {
             Theme::System => "Use the system theme",
             Theme::Light => "Switch to light theme",
             Theme::Dark => "Switch to dark theme",
-        };
-        IconButton::new(icon, next).attrs(
-            super::HxAttrs::new()
-                .with("data-oc-pref", "theme")
-                .with("data-oc-value", current.as_str()),
-        )
+        }
     }
 
     fn density_button(&self) -> IconButton {

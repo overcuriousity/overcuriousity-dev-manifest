@@ -121,6 +121,17 @@
 
 .oc-copy { color: var(--color-fg-muted); }
 .oc-copy[data-copied] { color: var(--color-success); }
+.oc-copy [data-icon="check"], .oc-copy[data-copied] [data-icon="copy"] { display: none; }
+.oc-copy[data-copied] [data-icon="check"] { display: block; }
+html[data-oc-no-copy] .oc-copy { display: none; }
+
+.oc-theme-toggle .oc-icon { display: none; }
+.oc-theme-toggle[data-oc-value="system"] [data-icon="monitor"],
+.oc-theme-toggle[data-oc-value="light"] [data-icon="sun"],
+.oc-theme-toggle[data-oc-value="dark"] [data-icon="moon"] { display: block; }
+
+.oc-menu-wrap { position: relative; display: inline-block; }
+.oc-menu-wrap > .oc-menu { top: calc(100% + var(--space-1)); left: 0; }
 
 .oc-field { display: flex; flex-direction: column; gap: var(--space-1); }
 .oc-field > label, .oc-field__label { font-weight: 500; color: var(--color-fg-secondary); }

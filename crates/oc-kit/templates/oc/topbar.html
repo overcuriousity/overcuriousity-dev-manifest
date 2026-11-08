@@ -9,7 +9,7 @@
   <div class="oc-topbar__search">{% if let Some(s) = search %}{{ s }}{% endif %}</div>
   <div class="oc-topbar__end">
     {{ self.density_button() }}
-    {{ self.theme_button() }}
+    <button type="button" class="oc-btn oc-btn--icon oc-theme-toggle" data-oc-pref="theme" data-oc-value="{{ prefs.theme.as_str() }}" aria-label="{{ self.theme_label() }}" data-oc-tip="{{ self.theme_label() }}">{{ Icon::ThemeSystem }}{{ Icon::ThemeLight }}{{ Icon::ThemeDark }}</button>
     {%- if let Some(u) = user %}
     <a class="oc-link--data" href="/account">{{ u.display_name }}</a>
     <form method="post" action="/auth/sign-out"><button type="submit" class="oc-btn oc-btn--icon" aria-label="Sign out" data-oc-tip="Sign out">{{ Icon::SignOut }}</button></form>
