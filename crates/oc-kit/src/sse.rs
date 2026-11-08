@@ -46,7 +46,9 @@ where
             Ok(v) => render(&v)?,
             Err(BroadcastStreamRecvError::Lagged(_)) => SseEvent { name: "resync", data: String::new() },
         };
-        Some(Ok::<_, Infallible>(Event::default().event(ev.name).data(ev.data)))
+        // EventSource drops events without data, so an empty payload still gets a data line.
+        let data = if ev.data.is_empty() { "-".to_owned() } else { ev.data };
+        Some(Ok::<_, Infallible>(Event::default().event(ev.name).data(data)))
     });
     let mut res = Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(15))).into_response();
     res.headers_mut().insert("x-accel-buffering", HeaderValue::from_static("no"));

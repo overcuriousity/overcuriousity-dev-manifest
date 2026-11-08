@@ -141,7 +141,7 @@ async fn verdict(
 /// The row's verdict cell, swapped out of band so the table agrees with the inspector.
 fn cell(e: &Event) -> Html {
     Html(format!(
-        "<td class=\"oc-verdict-cell\" id=\"verdict-cell-{}\" hx-swap-oob=\"true\">{}</td>",
+        "<template><td class=\"oc-verdict-cell\" id=\"verdict-cell-{}\" hx-swap-oob=\"true\">{}</td></template>",
         e.id,
         render(&Verdict { event_id: e.id, state: e.verdict.clone().unwrap_or_default(), oob: true })
     ))
@@ -188,8 +188,13 @@ async fn set_pin(st: &AppState, headers: &HeaderMap, id: i64, pinned: bool) -> R
     let q = query::parse(&current_query(headers)).unwrap_or_default().to_string();
     let row = render(&Rows { case_id: e.case_id, events: std::slice::from_ref(&e), q, next: None });
     let story = story_html(st, e.case_id, None).await?;
-    Ok(Html::join([row, Html(format!("<div id=\"pane-body\" class=\"oc-stack\" hx-swap-oob=\"true\">{story}</div>"))])
-        .into_response())
+    Ok(Html::join([
+        row,
+        Html(format!(
+            "<template><div id=\"pane-body\" class=\"oc-stack\" hx-swap-oob=\"true\">{story}</div></template>"
+        )),
+    ])
+    .into_response())
 }
 
 async fn pin(

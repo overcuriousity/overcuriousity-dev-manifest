@@ -32,13 +32,16 @@ pub(super) async fn origin_check(State(ctx): State<Arc<Ctx>>, req: Request, next
         return next.run(req).await;
     }
     let h = req.headers();
-    let allowed = if let Some(origin) = h.get(header::ORIGIN) {
-        origin.to_str().is_ok_and(|o| ctx.dep.origin_allowed(o))
-    } else if let Some(site) = h.get("sec-fetch-site") {
-        matches!(site.to_str(), Ok("same-origin" | "none"))
-    } else {
+    // `Referrer-Policy: no-referrer` makes browsers send `Origin: null` on same-origin form posts,
+    // so "null" counts as absent and Sec-Fetch-Site decides.
+    let origin = h.get(header::ORIGIN).and_then(|v| v.to_str().ok()).filter(|o| *o != "null");
+    let site = h.get("sec-fetch-site").and_then(|v| v.to_str().ok());
+    let allowed = match (origin, site) {
+        (Some(o), _) if !ctx.dep.origin_allowed(o) => false,
+        (_, Some(s)) => matches!(s, "same-origin" | "none"),
+        (Some(_), None) => true,
         // Without a cookie there is no ambient credential to forge, so the auth layer decides (401 or bearer).
-        !h.contains_key(header::COOKIE)
+        (None, None) => !h.contains_key(header::COOKIE),
     };
     if allowed {
         next.run(req).await

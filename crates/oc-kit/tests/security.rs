@@ -125,3 +125,31 @@ async fn a_credential_free_post_without_origin_reaches_the_handler() {
     let r = req("POST", "/write").body(Body::empty()).unwrap();
     assert_eq!(status(local(), r).await, StatusCode::OK);
 }
+
+#[tokio::test]
+async fn a_browser_form_post_with_origin_null_and_same_origin_fetch_metadata_passes() {
+    let r = req("POST", "/write")
+        .header(header::ORIGIN, "null")
+        .header("sec-fetch-site", "same-origin")
+        .header(header::COOKIE, "s=1")
+        .body(Body::empty())
+        .unwrap();
+    assert_eq!(status(local(), r).await, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn origin_null_without_fetch_metadata_and_with_a_cookie_is_rejected() {
+    let r =
+        req("POST", "/write").header(header::ORIGIN, "null").header(header::COOKIE, "s=1").body(Body::empty()).unwrap();
+    assert_eq!(status(local(), r).await, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn a_cross_site_post_is_rejected_even_when_fetch_metadata_is_forged_same_origin() {
+    let r = req("POST", "/write")
+        .header(header::ORIGIN, "https://evil.example")
+        .header("sec-fetch-site", "same-origin")
+        .body(Body::empty())
+        .unwrap();
+    assert_eq!(status(local(), r).await, StatusCode::FORBIDDEN);
+}

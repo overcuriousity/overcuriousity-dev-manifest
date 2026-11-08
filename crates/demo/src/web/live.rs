@@ -125,8 +125,9 @@ async fn new_rows(
     let newer = events::newer_than(&st.pool, id, &q, lq.after, 500).await?;
     let max = events::max_id(&st.pool, id).await?.max(lq.after);
     let rows = render(&Rows { case_id: id, events: &newer, q: q.to_string(), next: None });
-    let after =
-        Html(format!("<input type=\"hidden\" id=\"after\" name=\"after\" value=\"{max}\" hx-swap-oob=\"true\">"));
-    let clear = Html("<div id=\"oc-ingest-notice\" hx-swap-oob=\"innerHTML\"></div>".into());
+    let after = Html(format!(
+        "<template><input type=\"hidden\" id=\"after\" name=\"after\" value=\"{max}\" hx-swap-oob=\"true\"></template>"
+    ));
+    let clear = Html("<template><div id=\"oc-ingest-notice\" hx-swap-oob=\"innerHTML\"></div></template>".into());
     Ok(Html::join([rows, after, clear]).into_response())
 }

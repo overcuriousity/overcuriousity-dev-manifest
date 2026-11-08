@@ -2,7 +2,7 @@
 <div class="oc-strip" id="oc-strip" hx-get="/cases/{{ case_id }}/timeline/histogram?q={{ crate::web::timeline::urlencode(q) }}" hx-trigger="load, sse:ingest throttle:2s, sse:resync" hx-swap="innerHTML"></div>
 <div class="oc-toolbar">
   <div class="oc-pills">{% for p in pills %}{{ p }}{% endfor %}</div>
-  <div id="oc-ingest-notice" hx-get="/cases/{{ case_id }}/timeline/new-count?q={{ crate::web::timeline::urlencode(q) }}" hx-include="#after" hx-trigger="sse:ingest throttle:1s" hx-swap="innerHTML"></div>
+  <div id="oc-ingest-notice" hx-get="/cases/{{ case_id }}/timeline/new-count?q={{ crate::web::timeline::urlencode(q) }}" hx-include="#after" hx-disinherit="*" hx-trigger="sse:ingest throttle:1s" hx-swap="innerHTML"></div>
   <input type="hidden" id="after" name="after" value="{{ after }}">
   <span class="oc-micro oc-muted oc-num">{{ matched }} events</span>
 </div>

@@ -1,4 +1,4 @@
-<svg class="oc-hist" viewBox="0 0 1000 56" preserveAspectRatio="none" role="img" aria-label="{{ label }}" xmlns="http://www.w3.org/2000/svg">
+<svg class="oc-hist" viewBox="0 0 1000 41" preserveAspectRatio="none" role="img" aria-label="{{ label }}" xmlns="http://www.w3.org/2000/svg">
   <line class="oc-hist-grid" x1="0" y1="20" x2="1000" y2="20"/>
   {%- if let Some((x, w)) = window %}
   <rect class="oc-hist-window" x="{{ x }}" y="0" width="{{ w }}" height="40"/>
@@ -7,6 +7,5 @@
   <rect class="oc-hist-bar" x="{{ x }}" y="{{ y }}" width="{{ w }}" height="{{ h }}"/>
   {%- endfor %}
   <line class="oc-hist-axis" x1="0" y1="40" x2="1000" y2="40"/>
-  <text class="oc-hist-label" x="0" y="54">{{ start }}</text>
-  <text class="oc-hist-label" x="1000" y="54" text-anchor="end">{{ end }}</text>
 </svg>
+<div class="oc-hist-labels oc-mono oc-micro oc-muted"><span>{{ start }}</span><span>{{ end }}</span></div>

@@ -82,3 +82,25 @@ async fn the_stream_is_not_cut_by_the_request_timeout() {
     b.send(8);
     assert!(read_for(&mut body, Duration::from_millis(150)).await.contains("data: 8"));
 }
+
+#[tokio::test]
+async fn events_without_a_payload_still_carry_a_data_line_so_browsers_dispatch_them() {
+    let b = Broadcaster::new(4);
+    let r = Router::new().route(
+        "/live",
+        get({
+            let b = b.clone();
+            move || {
+                let rx = b.subscribe();
+                async move { sse_response(rx, |_: &u32| Some(SseEvent { name: "ping", data: String::new() })) }
+            }
+        }),
+    );
+    let cfg = OcConfig::default();
+    let app = secure(r, &cfg.deployment().unwrap(), &cfg.trusted_proxies, Limits::default())
+        .layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 1))));
+    let res = app.oneshot(req()).await.unwrap();
+    b.send(1);
+    let text = read_for(&mut res.into_body(), Duration::from_millis(150)).await;
+    assert!(text.contains("event: ping\ndata:"), "{text:?}");
+}

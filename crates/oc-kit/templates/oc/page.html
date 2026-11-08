@@ -7,7 +7,7 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="{{ self.theme_light() }}">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="{{ self.theme_dark() }}">
-<meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"includeIndicatorStyles":false,"selfRequestsOnly":true}'>
+<meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"includeIndicatorStyles":false,"selfRequestsOnly":true,"attributesToSettle":["class","width","height"]}'>
 <script src="{{ self.asset("js/theme.js") }}"></script>
 <link rel="stylesheet" href="{{ self.asset("css/oc.css") }}">
 <link rel="stylesheet" href="{{ self.asset(&format!("css/profile-{}.css", self.profile_name())) }}">

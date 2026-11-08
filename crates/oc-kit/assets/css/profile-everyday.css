@@ -38,19 +38,19 @@
 }
 
 @container app (min-width: 90rem) {
-  .oc-columns {
+  .oc-columns--split {
     display: grid;
     grid-template-columns: 28rem 52rem;
     justify-content: center;
     gap: var(--space-6);
     max-width: none;
   }
-  .oc-columns[data-focus] .oc-region--list,
-  .oc-columns[data-focus] .oc-region--detail { display: block; }
+  .oc-columns--split[data-focus] .oc-region--list,
+  .oc-columns--split[data-focus] .oc-region--detail { display: block; }
   .oc-region--list { border-right: 1px solid var(--color-border); padding-right: var(--space-5); }
 }
 
 @container app (min-width: 150rem) {
-  .oc-columns { grid-template-columns: 28rem 52rem 22rem; }
+  .oc-columns--split { grid-template-columns: 28rem 52rem 22rem; }
   .oc-region--related { display: block; }
 }
