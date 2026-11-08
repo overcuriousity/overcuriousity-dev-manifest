@@ -1,0 +1,44 @@
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+# Every ignore needs a written reachability argument next to it.
+ignore = [
+  { id = "RUSTSEC-2023-0071", reason = "rsa Marvin attack needs private-key decryption; webauthn-rs and JWT validation only verify signatures with public keys." },
+  { id = "RUSTSEC-2026-0387", reason = "crypto-bigint 0.5 is pulled in by p256/p384 for JWT signature verification, which only handles public keys and public data." },
+  { id = "RUSTSEC-2026-0374", reason = "basic-toml is used by askama_derive at compile time to read askama.toml; it never parses untrusted input at runtime." },
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.9
+unused-allowed-license = "allow"
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Zlib",
+  "0BSD",
+  "CC0-1.0",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "MPL-2.0",
+  "OFL-1.1",
+  "CDLA-Permissive-2.0",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = ["https://github.com/overcuriousity/overcuriousity-dev-manifest"]

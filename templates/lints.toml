@@ -1,0 +1,7 @@
+# Paste into the workspace Cargo.toml; every member crate sets `[lints] workspace = true`.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"

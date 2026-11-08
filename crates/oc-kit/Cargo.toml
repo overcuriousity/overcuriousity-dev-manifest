@@ -40,6 +40,10 @@ rust-embed = { version = "8", features = ["debug-embed", "include-exclude"] }
 sha2 = "0.10"
 hex = "0.4"
 
+# webauthn-rs links OpenSSL; static musl release builds compile it from source.
+[target.'cfg(target_env = "musl")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
 [dev-dependencies]
 http-body-util = "0.1"
 url = "2"
