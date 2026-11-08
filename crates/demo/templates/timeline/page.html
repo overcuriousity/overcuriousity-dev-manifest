@@ -1,0 +1,26 @@
+<div class="oc-strip" id="oc-strip" hx-get="/cases/{{ case_id }}/timeline/histogram?q={{ crate::web::timeline::urlencode(q) }}" hx-trigger="load, sse:ingest throttle:2s, sse:resync" hx-swap="innerHTML"></div>
+<div class="oc-toolbar">
+  <div class="oc-pills">{% for p in pills %}{{ p }}{% endfor %}</div>
+  <div id="oc-ingest-notice" hx-get="/cases/{{ case_id }}/timeline/new-count?q={{ crate::web::timeline::urlencode(q) }}" hx-include="#after" hx-trigger="sse:ingest throttle:1s" hx-swap="innerHTML"></div>
+  <input type="hidden" id="after" name="after" value="{{ after }}">
+  <span class="oc-micro oc-muted oc-num">{{ matched }} events</span>
+</div>
+{%- if let Some(e) = error %}<div class="oc-toolbar">{{ e }}</div>{% endif %}
+<div class="oc-table-wrap" id="oc-table-wrap" hx-ext="sse" sse-connect="/cases/{{ case_id }}/live">
+{%- if let Some(e) = empty %}
+  <div class="oc-toolbar">{{ e }}</div>
+{%- else %}
+  <table class="oc-table" aria-label="Events">
+    <thead>
+      <tr>
+        <th>Time</th><th>Host</th><th>User</th><th class="oc-num">Event ID</th><th>Level</th><th>Process</th><th>Message</th>
+        <th class="tier-2">SHA-256</th><th class="tier-2 oc-num">PID</th>
+        <th class="tier-3">Parent</th><th class="tier-3">Command line</th><th class="tier-3 oc-num">Record</th>
+        <th class="tier-4">Host FQDN</th><th class="tier-4">Integrity</th><th class="tier-4">Logon ID</th><th class="tier-4">Source file</th>
+        <th class="oc-col-actions"><span class="oc-sr-only">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody data-oc-rows id="oc-rows">{{ rows }}</tbody>
+  </table>
+{%- endif %}
+</div>

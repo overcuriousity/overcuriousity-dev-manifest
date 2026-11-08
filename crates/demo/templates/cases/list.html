@@ -1,0 +1,19 @@
+<div class="oc-columns">
+  <div class="oc-page-head"><h1 class="oc-text-page">Cases</h1></div>
+  {%- if cases.is_empty() %}
+  {{ empty }}
+  {%- else %}
+  <ul class="oc-list" role="list">
+  {%- for c in cases %}
+    <li class="oc-list__item">
+      <div class="oc-list__main">
+        <a class="oc-list__title oc-link--data" href="/cases/{{ c.id }}/timeline">{{ c.name }}</a>
+        <span class="oc-list__meta">{{ c.events }} events · {{ c.notes }} notes</span>
+      </div>
+      <button type="button" class="oc-btn oc-btn--danger" data-oc-dialog-open="purge-{{ c.id }}">Purge case</button>
+      {{ self.confirm(c) }}
+    </li>
+  {%- endfor %}
+  </ul>
+  {%- endif %}
+</div>

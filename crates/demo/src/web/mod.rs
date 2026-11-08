@@ -1,5 +1,7 @@
+pub mod cases;
 pub mod errors;
 pub mod notes;
+pub mod timeline;
 
 use axum::Router;
 use axum::extract::{FromRequestParts, OptionalFromRequestParts};
@@ -13,7 +15,10 @@ use oc_kit::ui::{Html, Icon, Page, Profile, Tab, TabBar, TopBar};
 use crate::state::{AppState, BRANDING};
 
 pub fn routes() -> Router<AppState> {
-    Router::new().merge(notes::routes())
+    Router::new()
+        .merge(notes::routes())
+        .merge(timeline::routes())
+        .merge(cases::routes())
 }
 
 /// Everything a signed-in page needs to render its shell.

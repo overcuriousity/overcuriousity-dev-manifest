@@ -1,0 +1,12 @@
+<div class="oc-stack" id="oc-facets-body">
+{%- for f in facets %}
+  <section class="oc-facet">
+    <h2 class="oc-label oc-facet__title">{{ Self::title(f.field) }}</h2>
+    <ul>
+    {%- for (value, count) in f.values %}
+      <li><button type="button"{{ self.add(f.field, value) }}><span>{{ value }}</span><span class="oc-num">{{ count }}</span></button></li>
+    {%- endfor %}
+    </ul>
+  </section>
+{%- endfor %}
+</div>
