@@ -11,7 +11,7 @@ env:
   CARGO_TERM_COLOR: always
   SQLX_OFFLINE: "true"
   BIN: app # repo-specific
-  OC_KIT_TAG: v2026.11.0 # repo-specific
+  OC_KIT_TAG: v2026.11.1 # repo-specific
 
 jobs:
   fmt:

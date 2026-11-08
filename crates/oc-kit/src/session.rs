@@ -4,17 +4,12 @@ use tower_sessions::cookie::SameSite;
 use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::SqliteStore;
 
-use crate::config::Deployment;
 use crate::error::OcError;
 
 pub const USER_KEY: &str = "oc.user_id";
 
 /// `__Host-` cookies need Secure, which browsers also honour on `http://localhost`.
-pub async fn session_layer(
-    pool: &SqlitePool,
-    app: &str,
-    _dep: &Deployment,
-) -> Result<SessionManagerLayer<SqliteStore>, OcError> {
+pub async fn session_layer(pool: &SqlitePool, app: &str) -> Result<SessionManagerLayer<SqliteStore>, OcError> {
     let store = SqliteStore::new(pool.clone()).with_table_name("oc_sessions").map_err(OcError::internal)?;
     store.migrate().await.map_err(OcError::internal)?;
     tokio::spawn({

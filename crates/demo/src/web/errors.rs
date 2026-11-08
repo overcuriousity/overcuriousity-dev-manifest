@@ -11,7 +11,7 @@ fn page(status: StatusCode, message: &str, reference: Option<&str>) -> Response 
     let reference = reference
         .map(|r| format!("<p class=\"oc-secondary\">Reference <code class=\"oc-mono\">{r}</code></p>"))
         .unwrap_or_default();
-    let body = Html(format!(
+    let body = Html::raw(format!(
         "<div class=\"oc-columns oc-empty\"><p class=\"oc-text-section\">{}</p>{reference}<a href=\"/notes\">Back to notes</a></div>",
         askama::filters::escape(message, askama::filters::Html).map(|s| s.to_string()).unwrap_or_default()
     ));

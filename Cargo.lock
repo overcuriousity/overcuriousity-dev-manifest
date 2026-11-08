@@ -959,7 +959,7 @@ checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
 
 [[package]]
 name = "demo"
-version = "2026.11.0"
+version = "2026.11.1"
 dependencies = [
  "askama",
  "axum",
@@ -2348,7 +2348,7 @@ dependencies = [
 
 [[package]]
 name = "oc-check"
-version = "2026.11.0"
+version = "2026.11.1"
 dependencies = [
  "regex",
  "walkdir",
@@ -2356,7 +2356,7 @@ dependencies = [
 
 [[package]]
 name = "oc-kit"
-version = "2026.11.0"
+version = "2026.11.1"
 dependencies = [
  "argon2",
  "askama",

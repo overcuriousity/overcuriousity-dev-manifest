@@ -6,15 +6,15 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 
 use super::Ctx;
-use super::client_ip::{ClientIp, resolve, trusted_peer};
+use super::client_ip::{ClientIp, resolve};
 
 pub(super) async fn host_check(State(ctx): State<Arc<Ctx>>, req: Request, next: Next) -> Response {
     let (mut parts, body) = req.into_parts();
-    let forwarded = trusted_peer(&parts, &ctx.proxies)
-        .then(|| parts.headers.get("x-forwarded-host").and_then(|v| v.to_str().ok()))
-        .flatten();
-    let host = forwarded
-        .or_else(|| parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()))
+    // X-Forwarded-Host is ignored on purpose: nginx passes the client's Host through unchanged.
+    let host = parts
+        .headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
         .or_else(|| parts.uri.authority().map(|a| a.as_str()));
     if !host.is_some_and(|h| ctx.dep.host_allowed(h)) {
         return (StatusCode::MISDIRECTED_REQUEST, "This server does not answer for that host name.").into_response();

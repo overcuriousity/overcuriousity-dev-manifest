@@ -30,7 +30,7 @@ pub async fn state_with(cfg: OcConfig) -> (tempfile::TempDir, AuthState) {
 }
 
 pub async fn wrap(st: &AuthState, router: Router) -> Router {
-    let sessions = oc_kit::session::session_layer(&st.pool, st.app, &st.dep).await.unwrap();
+    let sessions = oc_kit::session::session_layer(&st.pool, st.app).await.unwrap();
     secure(router.layer(sessions), &st.dep, &OcConfig::default().trusted_proxies, Limits::default())
         .layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 5000))))
 }

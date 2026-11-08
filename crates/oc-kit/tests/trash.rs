@@ -56,7 +56,7 @@ async fn items_older_than_30_days_are_purged_and_younger_ones_are_kept() {
 
 #[test]
 fn the_undo_notice_names_the_item_and_autohides_after_6s() {
-    let h = Html::from(undo_notice("Deleted 'ACME notes'", HxAttrs::post("/notes/1/restore"))).0;
+    let h = Html::from(undo_notice("Deleted 'ACME notes'", HxAttrs::post("/notes/1/restore"))).into_string();
     assert!(h.contains("Deleted &#39;ACME notes&#39;") || h.contains("Deleted 'ACME notes'"), "{h}");
     assert!(
         h.contains("data-oc-autohide=\"6000\"") && h.contains("hx-post=\"/notes/1/restore\"") && h.contains(">Undo<")

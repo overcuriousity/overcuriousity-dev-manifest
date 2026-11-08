@@ -11,11 +11,24 @@ pub use components::*;
 pub use icons::{Icon, IconSize};
 pub use shell::*;
 
-/// Already-escaped HTML.
+/// Already-escaped HTML. Build it from components; `raw` is the explicit escape hatch.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Html(pub String);
+pub struct Html(String);
 
 impl Html {
+    /// Trusted markup: the caller guarantees every interpolated value is escaped or fixed.
+    pub fn raw(markup: impl Into<String>) -> Html {
+        Html(markup.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn into_string(self) -> String {
+        self.0
+    }
+
     pub fn render<T: askama::Template>(t: &T) -> Html {
         Html(t.render().unwrap_or_else(|e| {
             tracing::error!(error = %e, "template render failed");
@@ -61,14 +74,16 @@ impl HxAttrs {
         Self::default()
     }
 
+    /// Anything else (event handlers, `hx-on`, `style`) is dropped, because it would break the strict CSP.
     pub fn with(mut self, name: &'static str, value: impl Into<String>) -> Self {
-        debug_assert!(
-            (name.starts_with("hx-") && !name.starts_with("hx-on"))
-                || name.starts_with("data-")
-                || name.starts_with("aria-"),
-            "attribute {name} is not allowed"
-        );
-        self.0.push((name, value.into()));
+        let allowed = (name.starts_with("hx-") && !name.starts_with("hx-on"))
+            || name.starts_with("data-")
+            || name.starts_with("aria-");
+        if allowed {
+            self.0.push((name, value.into()));
+        } else {
+            tracing::error!(attribute = name, "dropped an attribute the strict CSP does not allow");
+        }
         self
     }
 

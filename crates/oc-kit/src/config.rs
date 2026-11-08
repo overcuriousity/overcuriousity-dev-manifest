@@ -104,7 +104,7 @@ impl<'de> Deserialize<'de> for Secret {
 }
 
 /// Loads `T` from an optional TOML file, then `{APP}__SECTION__KEY` environment variables.
-/// `{APP}__…__NAME_FILE=/path` sets `name` to the contents of that file.
+/// `{APP}__…__NAME_FILE=/path` sets `name` to the contents of that file, for any key.
 pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, OcError> {
     let prefix = format!("{}__", app.to_ascii_uppercase());
     let mut fig = Figment::new();
@@ -122,8 +122,14 @@ pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, Oc
         let Some(name) = rest.strip_suffix("_FILE") else {
             continue;
         };
-        let path = name.to_ascii_lowercase().replace("__", ".");
-        fig = fig.merge((path, format!("file://{value}")));
+        let key = name.to_ascii_lowercase().replace("__", ".");
+        let content = std::fs::read_to_string(&value)
+            .map_err(|e| OcError::Config(format!("Cannot read {key} from {value}: {e}.")))?;
+        let parsed: figment::value::Value = content
+            .trim_end_matches(['\n', '\r'])
+            .parse()
+            .unwrap_or_else(|never: std::convert::Infallible| match never {});
+        fig = fig.merge((key, parsed));
     }
     fig.extract().map_err(|e| OcError::Config(format!("Invalid configuration: {e}.")))
 }

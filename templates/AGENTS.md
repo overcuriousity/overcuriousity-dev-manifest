@@ -4,8 +4,8 @@
 
 ## Rules
 
-This app follows the overcuriousity dev manifest **v2026.11.0**:
-https://github.com/overcuriousity/overcuriousity-dev-manifest/tree/v2026.11.0/manifest
+This app follows the overcuriousity dev manifest **v2026.11.1**:
+https://github.com/overcuriousity/overcuriousity-dev-manifest/tree/v2026.11.1/manifest
 
 - Profile: <workbench | everyday>.
 - Read the manifest files in number order before changing UI, security or ops.

@@ -58,3 +58,28 @@ async fn login_start_returns_a_challenge_and_finish_without_a_ceremony_is_reject
     let fin = send(&app, json_post("/auth/passkeys/login/finish", "{}", None)).await;
     assert!(fin.status().is_client_error(), "{}", fin.status());
 }
+
+#[tokio::test]
+async fn a_removed_passkey_cannot_be_restored_after_an_hour() {
+    let mut cfg = OcConfig::default();
+    cfg.auth.passkeys = true;
+    let (_d, st) = state_with(cfg).await;
+    let u = add_user(&st.pool, "ada", "pw-ada-123").await;
+    let app = wrap(&st, Router::new().nest("/auth", router(st.clone())).with_state(st.clone())).await;
+    let old = (time::OffsetDateTime::now_utc() - time::Duration::hours(2)).to_string();
+    sqlx::query("INSERT INTO oc_passkeys (id, user_id, name, credential, created_at, removed_at) VALUES (7, ?, 'old', '{}', ?, ?)")
+        .bind(u.id)
+        .bind(&old)
+        .bind(&old)
+        .execute(&st.pool)
+        .await
+        .unwrap();
+    let c = sign_in(&app, "ada", "pw-ada-123").await;
+    send(&app, json_post("/auth/passkeys/7/restore", "", Some(&c))).await;
+    let removed: Option<String> = sqlx::query_scalar("SELECT removed_at FROM oc_passkeys WHERE id = 7")
+        .fetch_optional(&st.pool)
+        .await
+        .unwrap()
+        .flatten();
+    assert!(removed.is_some(), "an old removal was undone");
+}

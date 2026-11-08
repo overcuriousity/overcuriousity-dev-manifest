@@ -230,7 +230,7 @@ pub fn workbench(ctx: &Ctx, case: &cases::Case, q: &str, body: Html) -> Page {
         IconButton::new(Icon::Notes, "Notes of this case").attrs(super::notes::shell_get("/notes")),
     ];
     page.shortcuts = SHORTCUTS.to_vec();
-    page.pane = Some(Html("<div id=\"pane-body\" class=\"oc-stack\"></div>".into()));
+    page.pane = Some(Html::raw("<div id=\"pane-body\" class=\"oc-stack\"></div>"));
     page.inspector = Some(Html::from(Empty::new("Select an event to see its details.")));
     page
 }
@@ -271,13 +271,13 @@ async fn page(
     let density = if ctx.prefs.density == Density::Compact { "Compact" } else { "Default size" };
     p.statusbar = Some(StatusBar {
         items: vec![
-            Html(format!("<span id=\"oc-match-count\">{matched} of {} events</span>", case.events)),
+            Html::raw(format!("<span id=\"oc-match-count\">{matched} of {} events</span>", case.events)),
             Html::from(oc_kit::ui::Link::data("/cases", "All cases")),
-            Html(format!(
+            Html::raw(format!(
                 "<span class=\"oc-status oc-status--success\" id=\"oc-live-state\" data-oc-live>{}<span>Live</span></span>",
                 Icon::Success.sized(oc_kit::ui::IconSize::Row)
             )),
-            Html(density.to_owned()),
+            Html::raw(density.to_owned()),
         ],
     });
     if let Some(prev) = tq.undo.filter(|u| *u != tq.q) {

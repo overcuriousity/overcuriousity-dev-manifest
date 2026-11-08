@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2026.11.1]
+
+### Security
+- The host check ignores `X-Forwarded-Host`, which a client could set itself.
+- JWT bearer validation takes the signing algorithm from the key, never from the token alone.
+- A removed passkey can be restored only within an hour.
+- The rate limiter shares one bucket per IPv6 /64 and keeps its memory bounded.
+- `HxAttrs` drops event handlers, `hx-on` and other disallowed attributes at runtime; `Html` is built from components or the explicit `Html::raw`.
+
+### Fixed
+- `*_FILE` environment overrides work for any key, not only secrets.
+- `session_layer` no longer takes an unused deployment argument.
+- Releases install `cargo-zigbuild` and `cargo-about` as prebuilt binaries.
+
 ## [2026.11.0]
 
 ### Added

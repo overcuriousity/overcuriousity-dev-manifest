@@ -70,3 +70,14 @@ fn unknown_keys_are_rejected_with_the_key_name() {
     let e = load::<OcConfig>("octest", Some(&path)).unwrap_err();
     assert!(e.to_string().contains("bnid"), "{e}");
 }
+
+#[test]
+fn any_key_can_be_read_from_a_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let f = dir.path().join("url");
+    std::fs::write(&f, "https://notes.example\n").unwrap();
+    temp_env::with_vars([("OCFILE__PUBLIC_URL_FILE", Some(f.to_str().unwrap()))], || {
+        let c = load::<OcConfig>("ocfile", None).unwrap();
+        assert_eq!(c.public_url.unwrap().as_str(), "https://notes.example/");
+    });
+}

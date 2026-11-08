@@ -140,7 +140,7 @@ async fn verdict(
 
 /// The row's verdict cell, swapped out of band so the table agrees with the inspector.
 fn cell(e: &Event) -> Html {
-    Html(format!(
+    Html::raw(format!(
         "<template><td class=\"oc-verdict-cell\" id=\"verdict-cell-{}\" hx-swap-oob=\"true\">{}</td></template>",
         e.id,
         render(&Verdict { event_id: e.id, state: e.verdict.clone().unwrap_or_default(), oob: true })
@@ -190,7 +190,7 @@ async fn set_pin(st: &AppState, headers: &HeaderMap, id: i64, pinned: bool) -> R
     let story = story_html(st, e.case_id, None).await?;
     Ok(Html::join([
         row,
-        Html(format!(
+        Html::raw(format!(
             "<template><div id=\"pane-body\" class=\"oc-stack\" hx-swap-oob=\"true\">{story}</div></template>"
         )),
     ])

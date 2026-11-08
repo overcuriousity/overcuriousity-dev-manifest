@@ -107,7 +107,7 @@ async fn new_count(
     }
     let label = if n == 1 { "1 new event".to_owned() } else { format!("{n} new events") };
     let url = format!("/cases/{id}/timeline/new?after={}&q={}", lq.after, urlencode(&q.to_string()));
-    Ok(Html(format!(
+    Ok(Html::raw(format!(
         "<span class=\"oc-row\"><span>{label}</span><button type=\"button\" class=\"oc-btn\" id=\"oc-ingest-show\" hx-get=\"{url}\" hx-target=\"#oc-rows\" hx-swap=\"afterbegin\">Show</button></span>"
     ))
     .into_response())
@@ -131,7 +131,7 @@ async fn new_rows(
 /// Out-of-band updates for a table response: the newest id seen, and an empty new-events notice.
 /// Wrapped in <template> because the response is parsed in a table context.
 pub fn reset_cursor(after: i64) -> Html {
-    Html(format!(
+    Html::raw(format!(
         "<template><input type=\"hidden\" id=\"after\" name=\"after\" value=\"{after}\" hx-swap-oob=\"true\"></template>\
          <template><div id=\"oc-ingest-notice\" hx-swap-oob=\"innerHTML\"></div></template>"
     ))

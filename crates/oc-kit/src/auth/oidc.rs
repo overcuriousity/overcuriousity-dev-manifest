@@ -123,6 +123,16 @@ impl Oidc {
                 return Ok(None);
             }
         };
+        // The algorithm comes from the key, never from the token alone.
+        let alg_name = format!("{:?}", header.alg);
+        let pinned = match jwk.common.key_algorithm {
+            Some(ka) => format!("{ka:?}") == alg_name,
+            None => ["RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "EdDSA"]
+                .contains(&alg_name.as_str()),
+        };
+        if !pinned {
+            return Ok(None);
+        }
         let mut v = Validation::new(header.alg);
         v.set_issuer(&[self.cfg.issuer.as_str()]);
         v.set_audience(&[self.cfg.client_id.as_str(), self.resource.as_str()]);

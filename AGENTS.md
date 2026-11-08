@@ -20,7 +20,7 @@ Rules are MUST, SHOULD, NEVER or MAY. Values live in `crates/oc-kit/assets/css/0
 
 ## Starting a new app
 
-1. Depend on the kit by tag: `oc-kit = { git = "https://github.com/overcuriousity/overcuriousity-dev-manifest", tag = "v2026.11.0" }`.
+1. Depend on the kit by tag: `oc-kit = { git = "https://github.com/overcuriousity/overcuriousity-dev-manifest", tag = "v2026.11.1" }`.
 2. Copy `templates/` into the new repo: `.github/`, `deny.toml`, `rust-toolchain.toml`, `rustfmt.toml`, the lint table from `templates/lints.toml`, `.gitignore`, `install.sh`, `deploy/`, `scripts/bundle.sh`, `about.toml`, `about.hbs`, `AGENTS.md`, `SECURITY.md`, `CHANGELOG.md`, `config.example.toml`, `AIRGAP.md`. Replace `app` with the binary name.
 3. Wire the kit the way `crates/demo/src/app.rs` does:
    - `oc_kit::config::load`, `cfg.deployment()`
@@ -34,7 +34,7 @@ Rules are MUST, SHOULD, NEVER or MAY. Values live in `crates/oc-kit/assets/css/0
 ## Before you say you are done
 
 - Run `manifest/99-review-checklist.md`.
-- Run `oc-check .`: `cargo install --git https://github.com/overcuriousity/overcuriousity-dev-manifest --tag v2026.11.0 oc-check`.
+- Run `oc-check .`: `cargo install --git https://github.com/overcuriousity/overcuriousity-dev-manifest --tag v2026.11.1 oc-check`.
 - Never commit agent working files (`.superpowers/`, `.claude/`).
 
 ## This repo

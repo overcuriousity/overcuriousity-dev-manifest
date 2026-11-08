@@ -36,10 +36,6 @@ pub(super) fn resolve(parts: &Parts, proxies: &[IpNet]) -> Option<IpAddr> {
     Some(forwarded.into_iter().rev().find(|ip| !trusted(ip)).unwrap_or(peer))
 }
 
-pub(super) fn trusted_peer(parts: &Parts, proxies: &[IpNet]) -> bool {
-    peer(parts).is_some_and(|ip| proxies.iter().any(|n| n.contains(&ip)))
-}
-
 impl<S: Send + Sync> FromRequestParts<S> for ClientIp {
     type Rejection = OcError;
 

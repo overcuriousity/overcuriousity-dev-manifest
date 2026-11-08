@@ -17,6 +17,14 @@ pub struct Buckets {
     state: Arc<Mutex<HashMap<IpAddr, (f64, Instant)>>>,
 }
 
+/// One IPv6 client usually controls a whole /64, so it shares one bucket.
+fn bucket_key(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V6(v6) => IpAddr::V6((u128::from(v6) & !0u128.wrapping_shr(64)).into()),
+        v4 => v4,
+    }
+}
+
 impl Buckets {
     fn take(&self, ip: IpAddr) -> bool {
         let Ok(mut map) = self.state.lock() else {
@@ -24,9 +32,14 @@ impl Buckets {
         };
         let now = Instant::now();
         if map.len() > 10_000 {
-            map.retain(|_, (_, t)| now.duration_since(*t).as_secs() < 600);
+            // A bucket that has refilled carries no state, so it can go.
+            let (rate, burst) = (self.per_second, self.burst);
+            map.retain(|_, (tokens, t)| *tokens + now.duration_since(*t).as_secs_f64() * rate < burst);
+            if map.len() > 100_000 {
+                map.clear();
+            }
         }
-        let (tokens, last) = map.entry(ip).or_insert((self.burst, now));
+        let (tokens, last) = map.entry(bucket_key(ip)).or_insert((self.burst, now));
         *tokens = (*tokens + now.duration_since(*last).as_secs_f64() * self.per_second).min(self.burst);
         *last = now;
         if *tokens >= 1.0 {

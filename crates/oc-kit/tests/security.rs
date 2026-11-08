@@ -161,3 +161,13 @@ async fn rejections_carry_the_base_headers_too() {
     assert_eq!(res.status(), StatusCode::MISDIRECTED_REQUEST);
     assert_eq!(res.headers()["x-content-type-options"], "nosniff");
 }
+
+#[tokio::test]
+async fn a_forwarded_host_header_cannot_bypass_the_host_check() {
+    let r = Request::get("/")
+        .header(header::HOST, "evil.example")
+        .header("x-forwarded-host", "localhost:8080")
+        .body(Body::empty())
+        .unwrap();
+    assert_eq!(status(local(), r).await, StatusCode::MISDIRECTED_REQUEST);
+}

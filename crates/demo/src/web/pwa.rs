@@ -17,7 +17,7 @@ pub fn routes() -> Router<AppState> {
 }
 
 pub fn head() -> Html {
-    Html(format!(
+    Html::raw(format!(
         "<link rel=\"manifest\" href=\"/manifest.webmanifest\">\n<link rel=\"icon\" href=\"{}\" type=\"image/svg+xml\">",
         assets().url("icon.svg")
     ))
@@ -63,9 +63,8 @@ async fn service_worker() -> Response {
 }
 
 async fn offline() -> Response {
-    let body = Html(
-        "<div class=\"oc-columns oc-empty\"><p class=\"oc-text-section\">You are offline.</p><p>The journal needs the server to show notes. Reconnect and reload.</p></div>"
-            .into(),
+    let body = Html::raw(
+        "<div class=\"oc-columns oc-empty\"><p class=\"oc-text-section\">You are offline.</p><p>The journal needs the server to show notes. Reconnect and reload.</p></div>",
     );
     let top = TopBar::new(BRANDING, "/notes", Prefs::default(), None);
     Page::new("Offline", Profile::Everyday, top, body, PrefsSource::Local).into_response()

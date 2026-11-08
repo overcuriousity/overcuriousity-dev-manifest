@@ -202,8 +202,14 @@ async fn restore(
     CurrentUser(u): CurrentUser,
     Path(id): Path<i64>,
 ) -> Result<Html, OcError> {
-    sqlx::query!("UPDATE oc_passkeys SET removed_at = NULL WHERE id = ? AND user_id = ?", id, u.id)
-        .execute(&st.pool)
-        .await?;
+    let hour_ago = OffsetDateTime::now_utc() - time::Duration::hours(1);
+    sqlx::query!(
+        "UPDATE oc_passkeys SET removed_at = NULL WHERE id = ? AND user_id = ? AND removed_at > ?",
+        id,
+        u.id,
+        hour_ago
+    )
+    .execute(&st.pool)
+    .await?;
     list_fragment(&st, u.id).await
 }
