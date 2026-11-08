@@ -69,18 +69,11 @@ impl Cursor {
     }
 
     pub fn decode(s: &str) -> Result<Cursor, OcError> {
-        let bad = || {
-            OcError::BadRequest(
-                "That page link is no longer valid. Start from the first page.".into(),
-            )
-        };
+        let bad = || OcError::BadRequest("That page link is no longer valid. Start from the first page.".into());
         let raw = URL_SAFE_NO_PAD.decode(s).map_err(|_| bad())?;
         let text = String::from_utf8(raw).map_err(|_| bad())?;
         let (ts, id) = text.split_once('|').ok_or_else(bad)?;
-        Ok(Cursor {
-            ts: ts.parse().map_err(|_| bad())?,
-            id: id.parse().map_err(|_| bad())?,
-        })
+        Ok(Cursor { ts: ts.parse().map_err(|_| bad())?, id: id.parse().map_err(|_| bad())? })
     }
 }
 
@@ -105,15 +98,9 @@ fn push_filter(qb: &mut QueryBuilder<'_, Sqlite>, case_id: i64, q: &Query) {
     for term in &q.terms {
         match term {
             Term::Text(s) => {
-                qb.push(" AND instr(lower(message), lower(")
-                    .push_bind(s.clone())
-                    .push(")) > 0");
+                qb.push(" AND instr(lower(message), lower(").push_bind(s.clone()).push(")) > 0");
             }
-            Term::Field {
-                field: "verdict",
-                value,
-                negate,
-            } => {
+            Term::Field { field: "verdict", value, negate } => {
                 let not = if *negate { "NOT " } else { "" };
                 if value == "none" {
                     qb.push(format!(" AND {not}(verdict IS NULL)"));
@@ -123,33 +110,17 @@ fn push_filter(qb: &mut QueryBuilder<'_, Sqlite>, case_id: i64, q: &Query) {
                         .push(")");
                 }
             }
-            Term::Field {
-                field: "pinned",
-                value,
-                negate,
-            } => {
+            Term::Field { field: "pinned", value, negate } => {
                 let yes = (value == "yes") != *negate;
-                qb.push(if yes {
-                    " AND pinned_at IS NOT NULL"
-                } else {
-                    " AND pinned_at IS NULL"
-                });
+                qb.push(if yes { " AND pinned_at IS NOT NULL" } else { " AND pinned_at IS NULL" });
             }
-            Term::Field {
-                field,
-                value,
-                negate,
-            } => {
+            Term::Field { field, value, negate } => {
                 let Some(col) = column(field) else { continue };
                 let not = if *negate { "NOT " } else { "" };
                 if col == "event_id" {
-                    qb.push(format!(" AND {not}(event_id = "))
-                        .push_bind(value.parse::<i64>().unwrap_or(-1))
-                        .push(")");
+                    qb.push(format!(" AND {not}(event_id = ")).push_bind(value.parse::<i64>().unwrap_or(-1)).push(")");
                 } else {
-                    qb.push(format!(" AND {not}(lower({col}) = lower("))
-                        .push_bind(value.clone())
-                        .push("))");
+                    qb.push(format!(" AND {not}(lower({col}) = lower(")).push_bind(value.clone()).push("))");
                 }
             }
         }
@@ -175,14 +146,11 @@ pub async fn search(
             .push_bind(c.id)
             .push("))");
     }
-    qb.push(" ORDER BY ts DESC, id DESC LIMIT ")
-        .push_bind(limit + 1);
+    qb.push(" ORDER BY ts DESC, id DESC LIMIT ").push_bind(limit + 1);
     let mut items: Vec<Event> = qb.build_query_as().fetch_all(pool).await?;
     let more = items.len() as i64 > limit;
     items.truncate(usize::try_from(limit).unwrap_or(0));
-    let next_cursor = more
-        .then(|| items.last().map(|e| Cursor { ts: e.ts, id: e.id }.encode()))
-        .flatten();
+    let next_cursor = more.then(|| items.last().map(|e| Cursor { ts: e.ts, id: e.id }.encode())).flatten();
     Ok(Page { items, next_cursor })
 }
 
@@ -196,19 +164,11 @@ pub async fn newer_than(
 ) -> Result<Vec<Event>, OcError> {
     let mut qb = QueryBuilder::new("SELECT * FROM events");
     push_filter(&mut qb, case_id, q);
-    qb.push(" AND id > ")
-        .push_bind(after_id)
-        .push(" ORDER BY ts DESC, id DESC LIMIT ")
-        .push_bind(limit);
+    qb.push(" AND id > ").push_bind(after_id).push(" ORDER BY ts DESC, id DESC LIMIT ").push_bind(limit);
     Ok(qb.build_query_as().fetch_all(pool).await?)
 }
 
-pub async fn count(
-    pool: &SqlitePool,
-    case_id: i64,
-    q: &Query,
-    after_id: Option<i64>,
-) -> Result<i64, OcError> {
+pub async fn count(pool: &SqlitePool, case_id: i64, q: &Query, after_id: Option<i64>) -> Result<i64, OcError> {
     let mut qb = QueryBuilder::new("SELECT COUNT(*) FROM events");
     push_filter(&mut qb, case_id, q);
     if let Some(a) = after_id {
@@ -218,12 +178,9 @@ pub async fn count(
 }
 
 pub async fn max_id(pool: &SqlitePool, case_id: i64) -> Result<i64, OcError> {
-    Ok(sqlx::query_scalar!(
-        r#"SELECT COALESCE(MAX(id), 0) AS "m!: i64" FROM events WHERE case_id = ?"#,
-        case_id
-    )
-    .fetch_one(pool)
-    .await?)
+    Ok(sqlx::query_scalar!(r#"SELECT COALESCE(MAX(id), 0) AS "m!: i64" FROM events WHERE case_id = ?"#, case_id)
+        .fetch_one(pool)
+        .await?)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -236,9 +193,7 @@ pub async fn facets(pool: &SqlitePool, case_id: i64, q: &Query) -> Result<Vec<Fa
     let mut out = Vec::new();
     for field in FACET_FIELDS {
         let Some(col) = column(field) else { continue };
-        let mut qb = QueryBuilder::new(format!(
-            "SELECT CAST({col} AS TEXT) AS v, COUNT(*) AS n FROM events"
-        ));
+        let mut qb = QueryBuilder::new(format!("SELECT CAST({col} AS TEXT) AS v, COUNT(*) AS n FROM events"));
         push_filter(&mut qb, case_id, q);
         qb.push(" GROUP BY v ORDER BY n DESC, v LIMIT 8");
         let values: Vec<(String, i64)> = qb.build_query_as().fetch_all(pool).await?;
@@ -254,31 +209,17 @@ pub struct Histogram {
     pub buckets: Vec<u32>,
 }
 
-pub async fn histogram(
-    pool: &SqlitePool,
-    case_id: i64,
-    q: &Query,
-    n: u16,
-) -> Result<Histogram, OcError> {
+pub async fn histogram(pool: &SqlitePool, case_id: i64, q: &Query, n: u16) -> Result<Histogram, OcError> {
     let n = i64::from(n.max(1));
     let mut qb = QueryBuilder::new("SELECT MIN(ts), MAX(ts) FROM events");
     push_filter(&mut qb, case_id, q);
     let (start, end): (Option<i64>, Option<i64>) = qb.build_query_as().fetch_one(pool).await?;
     let (Some(start), Some(end)) = (start, end) else {
-        return Ok(Histogram {
-            start: 0,
-            end: 0,
-            buckets: vec![0; usize::try_from(n).unwrap_or(1)],
-        });
+        return Ok(Histogram { start: 0, end: 0, buckets: vec![0; usize::try_from(n).unwrap_or(1)] });
     };
     let width = ((end - start) / n).max(1);
     let mut qb = QueryBuilder::new("SELECT MIN((ts - ");
-    qb.push_bind(start)
-        .push(") / ")
-        .push_bind(width)
-        .push(", ")
-        .push_bind(n - 1)
-        .push(") AS b, COUNT(*) FROM events");
+    qb.push_bind(start).push(") / ").push_bind(width).push(", ").push_bind(n - 1).push(") AS b, COUNT(*) FROM events");
     push_filter(&mut qb, case_id, q);
     qb.push(" GROUP BY b");
     let rows: Vec<(i64, i64)> = qb.build_query_as().fetch_all(pool).await?;
@@ -288,11 +229,7 @@ pub async fn histogram(
             *slot = u32::try_from(c).unwrap_or(u32::MAX);
         }
     }
-    Ok(Histogram {
-        start,
-        end,
-        buckets,
-    })
+    Ok(Histogram { start, end, buckets })
 }
 
 pub async fn get(pool: &SqlitePool, id: i64) -> Result<Event, OcError> {
@@ -304,54 +241,29 @@ pub async fn get(pool: &SqlitePool, id: i64) -> Result<Event, OcError> {
 }
 
 /// Returns the previous verdict so the caller can offer Undo.
-pub async fn set_verdict(
-    pool: &SqlitePool,
-    id: i64,
-    verdict: Option<&str>,
-) -> Result<Option<String>, OcError> {
+pub async fn set_verdict(pool: &SqlitePool, id: i64, verdict: Option<&str>) -> Result<Option<String>, OcError> {
     if verdict.is_some_and(|v| !VERDICTS.contains(&v)) {
-        return Err(OcError::Unprocessable(
-            "Choose benign, suspicious or malicious.".into(),
-        ));
+        return Err(OcError::Unprocessable("Choose benign, suspicious or malicious.".into()));
     }
     let previous = get(pool, id).await?.verdict;
-    sqlx::query!("UPDATE events SET verdict = ? WHERE id = ?", verdict, id)
-        .execute(pool)
-        .await?;
+    sqlx::query!("UPDATE events SET verdict = ? WHERE id = ?", verdict, id).execute(pool).await?;
     Ok(previous)
 }
 
-pub async fn set_pinned(
-    pool: &SqlitePool,
-    id: i64,
-    pinned: bool,
-    now: OffsetDateTime,
-) -> Result<(), OcError> {
+pub async fn set_pinned(pool: &SqlitePool, id: i64, pinned: bool, now: OffsetDateTime) -> Result<(), OcError> {
     let at = pinned.then_some(now);
-    let r = sqlx::query!("UPDATE events SET pinned_at = ? WHERE id = ?", at, id)
-        .execute(pool)
-        .await?;
-    if r.rows_affected() == 0 {
-        Err(OcError::NotFound)
-    } else {
-        Ok(())
-    }
+    let r = sqlx::query!("UPDATE events SET pinned_at = ? WHERE id = ?", at, id).execute(pool).await?;
+    if r.rows_affected() == 0 { Err(OcError::NotFound) } else { Ok(()) }
 }
 
 pub async fn pinned(pool: &SqlitePool, case_id: i64) -> Result<Vec<Event>, OcError> {
-    Ok(sqlx::query_as::<_, Event>(
-        "SELECT * FROM events WHERE case_id = ? AND pinned_at IS NOT NULL ORDER BY ts, id",
-    )
-    .bind(case_id)
-    .fetch_all(pool)
-    .await?)
+    Ok(sqlx::query_as::<_, Event>("SELECT * FROM events WHERE case_id = ? AND pinned_at IS NOT NULL ORDER BY ts, id")
+        .bind(case_id)
+        .fetch_all(pool)
+        .await?)
 }
 
-pub async fn insert<'e, X: sqlx::SqliteExecutor<'e>>(
-    ex: X,
-    case_id: i64,
-    e: &NewEvent,
-) -> Result<i64, OcError> {
+pub async fn insert<'e, X: sqlx::SqliteExecutor<'e>>(ex: X, case_id: i64, e: &NewEvent) -> Result<i64, OcError> {
     Ok(sqlx::query_scalar!(
         "INSERT INTO events (case_id, ts, host, user, event_id, level, source, process, pid, parent, command_line, record,
                              integrity, logon_id, source_file, sha256, message)

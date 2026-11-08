@@ -53,10 +53,7 @@ impl AssetSet {
         static KIT: OnceLock<AssetSet> = OnceLock::new();
         KIT.get_or_init(|| AssetSet {
             mount: "_oc",
-            hash: hash_of(
-                KitFiles::iter().chain([Cow::Borrowed(KIT_CSS_PATH)]),
-                kit_get,
-            ),
+            hash: hash_of(KitFiles::iter().chain([Cow::Borrowed(KIT_CSS_PATH)]), kit_get),
             get: kit_get,
         })
     }
@@ -75,9 +72,7 @@ impl AssetSet {
     }
 
     fn router(&'static self) -> Router {
-        Router::new()
-            .route(&format!("/{}/{{hash}}/{{*path}}", self.mount), get(serve))
-            .with_state(self)
+        Router::new().route(&format!("/{}/{{hash}}/{{*path}}", self.mount), get(serve)).with_state(self)
     }
 }
 
@@ -95,10 +90,7 @@ fn content_type(path: &str) -> &'static str {
     }
 }
 
-async fn serve(
-    State(set): State<&'static AssetSet>,
-    Path((hash, path)): Path<(String, String)>,
-) -> Response {
+async fn serve(State(set): State<&'static AssetSet>, Path((hash, path)): Path<(String, String)>) -> Response {
     if hash != set.hash {
         return StatusCode::NOT_FOUND.into_response();
     }

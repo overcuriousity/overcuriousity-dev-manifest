@@ -15,14 +15,8 @@ pub const CASES: [(&str, &str); 3] = [
         "ACME breach",
         "Interactive logons on ws-01 outside business hours, followed by a new service on the file server.",
     ),
-    (
-        "Payroll phish",
-        "A macro document from a spoofed payroll address; two users opened it.",
-    ),
-    (
-        "Lab ws-07",
-        "Unexpected PowerShell on a lab workstation that should be idle.",
-    ),
+    ("Payroll phish", "A macro document from a spoofed payroll address; two users opened it."),
+    ("Lab ws-07", "Unexpected PowerShell on a lab workstation that should be idle."),
 ];
 
 const HOSTS: [&str; 12] = [
@@ -62,88 +56,33 @@ const USERS: [&str; 20] = [
     "m.weber",
 ];
 const PROCESSES: [(&str, &str); 10] = [
-    (
-        "powershell.exe",
-        "powershell.exe -NoProfile -EncodedCommand SQBFAFgA",
-    ),
+    ("powershell.exe", "powershell.exe -NoProfile -EncodedCommand SQBFAFgA"),
     ("cmd.exe", "cmd.exe /c whoami /all"),
-    (
-        "rundll32.exe",
-        "rundll32.exe C:\\Users\\Public\\x.dll,Start",
-    ),
+    ("rundll32.exe", "rundll32.exe C:\\Users\\Public\\x.dll,Start"),
     ("svchost.exe", "svchost.exe -k netsvcs -p"),
     ("explorer.exe", "C:\\Windows\\explorer.exe"),
-    (
-        "winword.exe",
-        "\"C:\\Program Files\\Microsoft Office\\WINWORD.EXE\" /n payroll.docm",
-    ),
+    ("winword.exe", "\"C:\\Program Files\\Microsoft Office\\WINWORD.EXE\" /n payroll.docm"),
     ("lsass.exe", "C:\\Windows\\system32\\lsass.exe"),
-    (
-        "schtasks.exe",
-        "schtasks.exe /create /sc minute /mo 5 /tn Updater /tr C:\\ProgramData\\u.exe",
-    ),
+    ("schtasks.exe", "schtasks.exe /create /sc minute /mo 5 /tn Updater /tr C:\\ProgramData\\u.exe"),
     ("net.exe", "net.exe group \"Domain Admins\" /domain"),
-    (
-        "sqlservr.exe",
-        "C:\\Program Files\\Microsoft SQL Server\\sqlservr.exe -sMSSQLSERVER",
-    ),
+    ("sqlservr.exe", "C:\\Program Files\\Microsoft SQL Server\\sqlservr.exe -sMSSQLSERVER"),
 ];
 const EVENT_IDS: [(i64, &str, &str, &str); 15] = [
-    (
-        4624,
-        "info",
-        "Security",
-        "An account was successfully logged on.",
-    ),
+    (4624, "info", "Security", "An account was successfully logged on."),
     (4625, "warning", "Security", "An account failed to log on."),
     (4634, "info", "Security", "An account was logged off."),
-    (
-        4648,
-        "warning",
-        "Security",
-        "A logon was attempted using explicit credentials.",
-    ),
-    (
-        4672,
-        "info",
-        "Security",
-        "Special privileges assigned to new logon.",
-    ),
+    (4648, "warning", "Security", "A logon was attempted using explicit credentials."),
+    (4672, "info", "Security", "Special privileges assigned to new logon."),
     (4688, "info", "Security", "A new process has been created."),
-    (
-        4697,
-        "warning",
-        "Security",
-        "A service was installed in the system.",
-    ),
+    (4697, "warning", "Security", "A service was installed in the system."),
     (4698, "warning", "Security", "A scheduled task was created."),
     (4720, "warning", "Security", "A user account was created."),
-    (
-        4732,
-        "warning",
-        "Security",
-        "A member was added to a security-enabled local group.",
-    ),
-    (
-        7045,
-        "warning",
-        "System",
-        "A new service was installed in the system.",
-    ),
+    (4732, "warning", "Security", "A member was added to a security-enabled local group."),
+    (7045, "warning", "System", "A new service was installed in the system."),
     (1102, "error", "Security", "The audit log was cleared."),
     (4104, "warning", "PowerShell", "Creating Scriptblock text."),
-    (
-        5140,
-        "info",
-        "Security",
-        "A network share object was accessed.",
-    ),
-    (
-        4776,
-        "info",
-        "Security",
-        "The computer attempted to validate the credentials for an account.",
-    ),
+    (5140, "info", "Security", "A network share object was accessed."),
+    (4776, "info", "Security", "The computer attempted to validate the credentials for an account."),
 ];
 const INTEGRITY: [&str; 4] = ["Low", "Medium", "High", "System"];
 
@@ -156,9 +95,7 @@ fn pick<'a, T>(rng: &mut impl Rng, items: &'a [T]) -> &'a T {
 }
 
 fn hex(rng: &mut impl Rng, len: usize) -> String {
-    (0..len)
-        .map(|_| char::from(b"0123456789abcdef"[rng.random_range(0..16)]))
-        .collect()
+    (0..len).map(|_| char::from(b"0123456789abcdef"[rng.random_range(0..16)])).collect()
 }
 
 pub fn event(rng: &mut impl Rng, ts: i64, record: i64) -> NewEvent {
@@ -175,13 +112,8 @@ pub fn event(rng: &mut impl Rng, ts: i64, record: i64) -> NewEvent {
         source: source.to_owned(),
         process: process.to_owned(),
         pid: Some(rng.random_range(400..12_000)),
-        parent: with_process.then(|| {
-            (*pick(
-                rng,
-                &["explorer.exe", "services.exe", "winword.exe", "cmd.exe"],
-            ))
-            .to_owned()
-        }),
+        parent: with_process
+            .then(|| (*pick(rng, &["explorer.exe", "services.exe", "winword.exe", "cmd.exe"])).to_owned()),
         command_line: with_process.then(|| cmd.to_owned()),
         record,
         integrity: Some((*pick(rng, &INTEGRITY)).to_owned()),
@@ -193,10 +125,7 @@ pub fn event(rng: &mut impl Rng, ts: i64, record: i64) -> NewEvent {
 }
 
 /// Creates the demo admin when there are no users; returns the one-time password.
-pub async fn ensure_demo_user(
-    pool: &SqlitePool,
-    now: OffsetDateTime,
-) -> Result<Option<String>, OcError> {
+pub async fn ensure_demo_user(pool: &SqlitePool, now: OffsetDateTime) -> Result<Option<String>, OcError> {
     if users::count(pool).await? > 0 {
         return Ok(None);
     }
@@ -245,9 +174,7 @@ const NOTES: [(usize, &str, &str, &str); 6] = [
 ];
 
 pub async fn seed(pool: &SqlitePool, now: OffsetDateTime) -> Result<bool, OcError> {
-    let existing: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM cases")
-        .fetch_one(pool)
-        .await?;
+    let existing: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM cases").fetch_one(pool).await?;
     if existing > 0 {
         return Ok(false);
     }

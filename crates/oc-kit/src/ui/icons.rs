@@ -48,11 +48,7 @@ impl Icon {
             IconSize::Tool => "oc-icon",
             IconSize::Tab => "oc-icon oc-icon--tab",
         };
-        let svg = raw.replacen(
-            "class=\"oc-icon\"",
-            &format!("class=\"{class}\" data-icon=\"{}\"", self.file()),
-            1,
-        );
+        let svg = raw.replacen("class=\"oc-icon\"", &format!("class=\"{class}\" data-icon=\"{}\"", self.file()), 1);
         super::Html(svg)
     }
 }

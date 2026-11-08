@@ -15,28 +15,14 @@ use tower::ServiceExt;
 const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 
 fn app(public_url: Option<&str>, peer: [u8; 4]) -> Router {
-    let cfg = OcConfig {
-        public_url: public_url.map(|u| u.parse().unwrap()),
-        ..OcConfig::default()
-    };
+    let cfg = OcConfig { public_url: public_url.map(|u| u.parse().unwrap()), ..OcConfig::default() };
     let dep = cfg.deployment().unwrap();
     let router = Router::new()
         .route("/", get(|| async { Html("<p>hi</p>") }))
         .route("/write", post(|_b: String| async { "ok" }))
-        .route(
-            "/ip",
-            get(|ClientIp(ip): ClientIp| async move { ip.to_string() }),
-        );
-    secure(
-        router,
-        &dep,
-        &cfg.trusted_proxies,
-        Limits {
-            body_bytes: 16,
-            ..Limits::default()
-        },
-    )
-    .layer(MockConnectInfo(SocketAddr::from((peer, 4000))))
+        .route("/ip", get(|ClientIp(ip): ClientIp| async move { ip.to_string() }));
+    secure(router, &dep, &cfg.trusted_proxies, Limits { body_bytes: 16, ..Limits::default() })
+        .layer(MockConnectInfo(SocketAddr::from((peer, 4000))))
 }
 
 fn local() -> Router {
@@ -44,10 +30,7 @@ fn local() -> Router {
 }
 
 fn req(method: &str, uri: &str) -> axum::http::request::Builder {
-    Request::builder()
-        .method(method)
-        .uri(uri)
-        .header(header::HOST, "localhost:8080")
+    Request::builder().method(method).uri(uri).header(header::HOST, "localhost:8080")
 }
 
 async fn status(app: Router, r: Request<Body>) -> StatusCode {
@@ -56,10 +39,7 @@ async fn status(app: Router, r: Request<Body>) -> StatusCode {
 
 #[tokio::test]
 async fn html_responses_carry_the_exact_csp_and_base_headers() {
-    let res = local()
-        .oneshot(req("GET", "/").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+    let res = local().oneshot(req("GET", "/").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(res.headers()["content-security-policy"], CSP);
     assert_eq!(res.headers()["x-content-type-options"], "nosniff");
     assert_eq!(res.headers()["referrer-policy"], "no-referrer");
@@ -68,14 +48,8 @@ async fn html_responses_carry_the_exact_csp_and_base_headers() {
 
 #[tokio::test]
 async fn hsts_is_sent_with_an_https_public_url() {
-    let r = Request::get("/")
-        .header(header::HOST, "notes.example")
-        .body(Body::empty())
-        .unwrap();
-    let res = app(Some("https://notes.example"), [127, 0, 0, 1])
-        .oneshot(r)
-        .await
-        .unwrap();
+    let r = Request::get("/").header(header::HOST, "notes.example").body(Body::empty()).unwrap();
+    let res = app(Some("https://notes.example"), [127, 0, 0, 1]).oneshot(r).await.unwrap();
     assert!(res.headers().contains_key("strict-transport-security"));
 }
 
@@ -101,19 +75,13 @@ async fn a_same_origin_post_with_a_session_cookie_passes() {
 
 #[tokio::test]
 async fn a_post_with_neither_origin_nor_fetch_metadata_and_a_cookie_is_rejected() {
-    let r = req("POST", "/write")
-        .header(header::COOKIE, "s=1")
-        .body(Body::empty())
-        .unwrap();
+    let r = req("POST", "/write").header(header::COOKIE, "s=1").body(Body::empty()).unwrap();
     assert_eq!(status(local(), r).await, StatusCode::FORBIDDEN);
 }
 
 #[tokio::test]
 async fn a_bearer_post_without_origin_passes_but_not_with_a_foreign_origin() {
-    let ok = req("POST", "/write")
-        .header(header::AUTHORIZATION, "Bearer x")
-        .body(Body::empty())
-        .unwrap();
+    let ok = req("POST", "/write").header(header::AUTHORIZATION, "Bearer x").body(Body::empty()).unwrap();
     assert_eq!(status(local(), ok).await, StatusCode::OK);
     let bad = req("POST", "/write")
         .header(header::AUTHORIZATION, "Bearer x")
@@ -125,55 +93,29 @@ async fn a_bearer_post_without_origin_passes_but_not_with_a_foreign_origin() {
 
 #[tokio::test]
 async fn a_foreign_host_header_is_rejected_with_421() {
-    let r = Request::get("/")
-        .header(header::HOST, "evil.example")
-        .body(Body::empty())
-        .unwrap();
+    let r = Request::get("/").header(header::HOST, "evil.example").body(Body::empty()).unwrap();
     assert_eq!(status(local(), r).await, StatusCode::MISDIRECTED_REQUEST);
 }
 
 #[tokio::test]
 async fn forwarded_for_is_used_only_from_a_trusted_proxy() {
-    let r = || {
-        req("GET", "/ip")
-            .header("x-forwarded-for", "203.0.113.9")
-            .body(Body::empty())
-            .unwrap()
-    };
+    let r = || req("GET", "/ip").header("x-forwarded-for", "203.0.113.9").body(Body::empty()).unwrap();
     let body = |res: axum::response::Response| async {
-        String::from_utf8(
-            axum::body::to_bytes(res.into_body(), 100)
-                .await
-                .unwrap()
-                .to_vec(),
-        )
-        .unwrap()
+        String::from_utf8(axum::body::to_bytes(res.into_body(), 100).await.unwrap().to_vec()).unwrap()
     };
-    assert_eq!(
-        body(local().oneshot(r()).await.unwrap()).await,
-        "203.0.113.9"
-    );
-    assert_eq!(
-        body(app(None, [10, 0, 0, 5]).oneshot(r()).await.unwrap()).await,
-        "10.0.0.5"
-    );
+    assert_eq!(body(local().oneshot(r()).await.unwrap()).await, "203.0.113.9");
+    assert_eq!(body(app(None, [10, 0, 0, 5]).oneshot(r()).await.unwrap()).await, "10.0.0.5");
 }
 
 #[tokio::test]
 async fn bodies_over_the_limit_get_413() {
-    let r = req("POST", "/write")
-        .header(header::AUTHORIZATION, "Bearer x")
-        .body(Body::from(vec![b'a'; 64]))
-        .unwrap();
+    let r = req("POST", "/write").header(header::AUTHORIZATION, "Bearer x").body(Body::from(vec![b'a'; 64])).unwrap();
     assert_eq!(status(local(), r).await, StatusCode::PAYLOAD_TOO_LARGE);
 }
 
 #[tokio::test]
 async fn authenticated_responses_are_no_store() {
-    let r = req("GET", "/")
-        .header(header::COOKIE, "s=1")
-        .body(Body::empty())
-        .unwrap();
+    let r = req("GET", "/").header(header::COOKIE, "s=1").body(Body::empty()).unwrap();
     let res = local().oneshot(r).await.unwrap();
     assert_eq!(res.headers()[header::CACHE_CONTROL], "no-store");
 }

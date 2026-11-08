@@ -28,10 +28,7 @@ pub(super) struct NextQuery {
 
 pub(super) fn routes() -> Router<AuthState> {
     Router::new()
-        .route(
-            "/sign-in",
-            get(sign_in_page).merge(post(sign_in).layer(rate_limit(10, 5))),
-        )
+        .route("/sign-in", get(sign_in_page).merge(post(sign_in).layer(rate_limit(10, 5))))
         .route("/sign-out", post(sign_out))
 }
 
@@ -48,17 +45,10 @@ async fn sign_in(
         return Err(OcError::NotFound);
     }
     let Some(user) = users::verify_password(&st.pool, f.username.trim(), &f.password).await? else {
-        return Ok(super::render_sign_in(
-            &st,
-            safe_next(&f.next),
-            Some("Wrong username or password."),
-        ));
+        return Ok(super::render_sign_in(&st, safe_next(&f.next), Some("Wrong username or password.")));
     };
     session.cycle_id().await.map_err(OcError::internal)?;
-    session
-        .insert(USER_KEY, user.id)
-        .await
-        .map_err(OcError::internal)?;
+    session.insert(USER_KEY, user.id).await.map_err(OcError::internal)?;
     Ok(Redirect::to(safe_next(&f.next)).into_response())
 }
 

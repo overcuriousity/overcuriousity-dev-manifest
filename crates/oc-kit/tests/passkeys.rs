@@ -14,13 +14,7 @@ async fn app(passkeys: bool) -> (tempfile::TempDir, Router) {
     cfg.auth.passkeys = passkeys;
     let (d, st) = state_with(cfg).await;
     add_user(&st.pool, "ada", "pw-ada-123").await;
-    let app = wrap(
-        &st,
-        Router::new()
-            .nest("/auth", router(st.clone()))
-            .with_state(st.clone()),
-    )
-    .await;
+    let app = wrap(&st, Router::new().nest("/auth", router(st.clone())).with_state(st.clone())).await;
     (d, app)
 }
 
@@ -38,29 +32,18 @@ fn json_post(uri: &str, body: &str, cookie: Option<&str>) -> Request<Body> {
 #[tokio::test]
 async fn passkey_routes_are_absent_when_disabled() {
     let (_d, app) = app(false).await;
-    assert_eq!(
-        send(&app, json_post("/auth/passkeys/login/start", "", None))
-            .await
-            .status(),
-        StatusCode::NOT_FOUND
-    );
+    assert_eq!(send(&app, json_post("/auth/passkeys/login/start", "", None)).await.status(), StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]
 async fn register_start_requires_sign_in() {
     let (_d, app) = app(true).await;
     assert_eq!(
-        send(&app, json_post("/auth/passkeys/register/start", "", None))
-            .await
-            .status(),
+        send(&app, json_post("/auth/passkeys/register/start", "", None)).await.status(),
         StatusCode::UNAUTHORIZED
     );
     let c = sign_in(&app, "ada", "pw-ada-123").await;
-    let res = send(
-        &app,
-        json_post("/auth/passkeys/register/start", "", Some(&c)),
-    )
-    .await;
+    let res = send(&app, json_post("/auth/passkeys/register/start", "", Some(&c))).await;
     assert_eq!(res.status(), StatusCode::OK);
     assert!(body(res).await.contains("\"challenge\""));
 }

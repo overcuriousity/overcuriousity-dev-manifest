@@ -11,27 +11,13 @@ use super::client_ip::{ClientIp, resolve, trusted_peer};
 pub(super) async fn host_check(State(ctx): State<Arc<Ctx>>, req: Request, next: Next) -> Response {
     let (mut parts, body) = req.into_parts();
     let forwarded = trusted_peer(&parts, &ctx.proxies)
-        .then(|| {
-            parts
-                .headers
-                .get("x-forwarded-host")
-                .and_then(|v| v.to_str().ok())
-        })
+        .then(|| parts.headers.get("x-forwarded-host").and_then(|v| v.to_str().ok()))
         .flatten();
     let host = forwarded
-        .or_else(|| {
-            parts
-                .headers
-                .get(header::HOST)
-                .and_then(|v| v.to_str().ok())
-        })
+        .or_else(|| parts.headers.get(header::HOST).and_then(|v| v.to_str().ok()))
         .or_else(|| parts.uri.authority().map(|a| a.as_str()));
     if !host.is_some_and(|h| ctx.dep.host_allowed(h)) {
-        return (
-            StatusCode::MISDIRECTED_REQUEST,
-            "This server does not answer for that host name.",
-        )
-            .into_response();
+        return (StatusCode::MISDIRECTED_REQUEST, "This server does not answer for that host name.").into_response();
     }
     if let Some(ip) = resolve(&parts, &ctx.proxies) {
         parts.extensions.insert(ClientIp(ip));
@@ -41,11 +27,7 @@ pub(super) async fn host_check(State(ctx): State<Arc<Ctx>>, req: Request, next: 
 
 /// Cookie-authenticated writes must come from our own origin. Non-browser clients send neither
 /// `Origin` nor `Sec-Fetch-Site`; they are let through only when they carry no cookie.
-pub(super) async fn origin_check(
-    State(ctx): State<Arc<Ctx>>,
-    req: Request,
-    next: Next,
-) -> Response {
+pub(super) async fn origin_check(State(ctx): State<Arc<Ctx>>, req: Request, next: Next) -> Response {
     if matches!(*req.method(), Method::GET | Method::HEAD | Method::OPTIONS) {
         return next.run(req).await;
     }
@@ -61,10 +43,6 @@ pub(super) async fn origin_check(
     if allowed {
         next.run(req).await
     } else {
-        (
-            StatusCode::FORBIDDEN,
-            "This request came from another site and was blocked.",
-        )
-            .into_response()
+        (StatusCode::FORBIDDEN, "This request came from another site and was blocked.").into_response()
     }
 }

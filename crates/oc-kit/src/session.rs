@@ -15,16 +15,12 @@ pub async fn session_layer(
     app: &str,
     _dep: &Deployment,
 ) -> Result<SessionManagerLayer<SqliteStore>, OcError> {
-    let store = SqliteStore::new(pool.clone())
-        .with_table_name("oc_sessions")
-        .map_err(OcError::internal)?;
+    let store = SqliteStore::new(pool.clone()).with_table_name("oc_sessions").map_err(OcError::internal)?;
     store.migrate().await.map_err(OcError::internal)?;
     tokio::spawn({
         let store = store.clone();
         async move {
-            let _ = store
-                .continuously_delete_expired(std::time::Duration::from_secs(3600))
-                .await;
+            let _ = store.continuously_delete_expired(std::time::Duration::from_secs(3600)).await;
         }
     });
     Ok(SessionManagerLayer::new(store)

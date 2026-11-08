@@ -22,9 +22,7 @@ pub struct TokenInfo {
 
 fn random(len: usize) -> String {
     let mut rng = rand::rng();
-    (0..len)
-        .map(|_| char::from(ALPHABET[rng.random_range(0..ALPHABET.len())]))
-        .collect()
+    (0..len).map(|_| char::from(ALPHABET[rng.random_range(0..ALPHABET.len())])).collect()
 }
 
 fn parse<'a>(token: &'a str, prefix: &str) -> Option<(&'a str, &'a str)> {
@@ -44,9 +42,7 @@ pub async fn mint(
 ) -> Result<(TokenInfo, String), OcError> {
     let name = name.trim();
     if name.is_empty() || name.len() > 80 {
-        return Err(OcError::Unprocessable(
-            "Give the token a name of up to 80 characters.".into(),
-        ));
+        return Err(OcError::Unprocessable("Give the token a name of up to 80 characters.".into()));
     }
     let id = random(ID_LEN);
     let secret = random(SECRET_LEN);
@@ -62,16 +58,7 @@ pub async fn mint(
     .execute(pool)
     .await?;
     let token = format!("{prefix}_{id}.{secret}");
-    Ok((
-        TokenInfo {
-            id,
-            name: name.to_owned(),
-            created_at: now,
-            last_used_at: None,
-            revoked_at: None,
-        },
-        token,
-    ))
+    Ok((TokenInfo { id, name: name.to_owned(), created_at: now, last_used_at: None, revoked_at: None }, token))
 }
 
 pub async fn verify(
@@ -104,12 +91,7 @@ pub async fn verify(
     )
     .execute(pool)
     .await?;
-    Ok(Some(User {
-        id: row.user_id,
-        username: row.username,
-        display_name: row.display_name,
-        is_admin: row.is_admin,
-    }))
+    Ok(Some(User { id: row.user_id, username: row.username, display_name: row.display_name, is_admin: row.is_admin }))
 }
 
 pub async fn list(pool: &SqlitePool, user_id: i64) -> Result<Vec<TokenInfo>, OcError> {
@@ -138,38 +120,16 @@ pub async fn get(pool: &SqlitePool, user_id: i64, id: &str) -> Result<TokenInfo,
     .ok_or(OcError::NotFound)
 }
 
-pub async fn revoke(
-    pool: &SqlitePool,
-    user_id: i64,
-    id: &str,
-    now: OffsetDateTime,
-) -> Result<(), OcError> {
-    let r = sqlx::query!(
-        "UPDATE oc_api_tokens SET revoked_at = ? WHERE id = ? AND user_id = ?",
-        now,
-        id,
-        user_id
-    )
-    .execute(pool)
-    .await?;
-    if r.rows_affected() == 0 {
-        Err(OcError::NotFound)
-    } else {
-        Ok(())
-    }
+pub async fn revoke(pool: &SqlitePool, user_id: i64, id: &str, now: OffsetDateTime) -> Result<(), OcError> {
+    let r = sqlx::query!("UPDATE oc_api_tokens SET revoked_at = ? WHERE id = ? AND user_id = ?", now, id, user_id)
+        .execute(pool)
+        .await?;
+    if r.rows_affected() == 0 { Err(OcError::NotFound) } else { Ok(()) }
 }
 
 pub async fn restore(pool: &SqlitePool, user_id: i64, id: &str) -> Result<(), OcError> {
-    let r = sqlx::query!(
-        "UPDATE oc_api_tokens SET revoked_at = NULL WHERE id = ? AND user_id = ?",
-        id,
-        user_id
-    )
-    .execute(pool)
-    .await?;
-    if r.rows_affected() == 0 {
-        Err(OcError::NotFound)
-    } else {
-        Ok(())
-    }
+    let r = sqlx::query!("UPDATE oc_api_tokens SET revoked_at = NULL WHERE id = ? AND user_id = ?", id, user_id)
+        .execute(pool)
+        .await?;
+    if r.rows_affected() == 0 { Err(OcError::NotFound) } else { Ok(()) }
 }

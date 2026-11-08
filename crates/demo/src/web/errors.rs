@@ -9,22 +9,14 @@ use crate::state::BRANDING;
 
 fn page(status: StatusCode, message: &str, reference: Option<&str>) -> Response {
     let reference = reference
-        .map(|r| {
-            format!("<p class=\"oc-secondary\">Reference <code class=\"oc-mono\">{r}</code></p>")
-        })
+        .map(|r| format!("<p class=\"oc-secondary\">Reference <code class=\"oc-mono\">{r}</code></p>"))
         .unwrap_or_default();
     let body = Html(format!(
         "<div class=\"oc-columns oc-empty\"><p class=\"oc-text-section\">{}</p>{reference}<a href=\"/notes\">Back to notes</a></div>",
-        askama::filters::escape(message, askama::filters::Html)
-            .map(|s| s.to_string())
-            .unwrap_or_default()
+        askama::filters::escape(message, askama::filters::Html).map(|s| s.to_string()).unwrap_or_default()
     ));
     let top = TopBar::new(BRANDING, "/notes", Prefs::default(), None);
-    (
-        status,
-        Page::new(message, Profile::Everyday, top, body, PrefsSource::Local),
-    )
-        .into_response()
+    (status, Page::new(message, Profile::Everyday, top, body, PrefsSource::Local)).into_response()
 }
 
 pub async fn not_found() -> Response {
@@ -33,12 +25,9 @@ pub async fn not_found() -> Response {
 
 /// Turns plain-text errors into the shared error page for browser navigations; htmx and API clients keep the one-line text.
 pub async fn html_errors(req: Request, next: Next) -> Response {
-    let wants_html = req
-        .headers()
-        .get(header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .is_some_and(|a| a.contains("text/html"))
-        && !req.headers().contains_key("hx-request");
+    let wants_html =
+        req.headers().get(header::ACCEPT).and_then(|v| v.to_str().ok()).is_some_and(|a| a.contains("text/html"))
+            && !req.headers().contains_key("hx-request");
     let path = req.uri().path().to_owned();
     let res = next.run(req).await;
     let status = res.status();

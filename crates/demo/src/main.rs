@@ -9,11 +9,7 @@ use oc_kit::identity::{password, users};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[command(
-    name = "demo",
-    version,
-    about = "Incident journal: the overcuriousity reference app"
-)]
+#[command(name = "demo", version, about = "Incident journal: the overcuriousity reference app")]
 struct Cli {
     /// TOML config file; DEMO__SECTION__KEY environment variables override it.
     #[arg(long, global = true)]
@@ -48,9 +44,7 @@ enum UserCommand {
 #[tokio::main]
 async fn main() -> ExitCode {
     tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
+        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .init();
     match run(Cli::parse()).await {
         Ok(()) => ExitCode::SUCCESS,
@@ -67,11 +61,7 @@ async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
     let pool = db::open(&cfg.data_dir(APP)).await?;
     match cli.command.unwrap_or(Command::Serve) {
         Command::Serve => serve(cfg, settings, pool).await,
-        Command::User(UserCommand::Add {
-            username,
-            admin,
-            display_name,
-        }) => {
+        Command::User(UserCommand::Add { username, admin, display_name }) => {
             let pw = password::generate(20);
             let name = display_name.unwrap_or_else(|| username.clone());
             users::create(&pool, &username, &name, admin, Some(&pw), domain::now()).await?;
@@ -79,9 +69,7 @@ async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
             Ok(())
         }
         Command::User(UserCommand::SetPassword { username }) => {
-            let user = users::by_username(&pool, &username)
-                .await?
-                .ok_or(oc_kit::OcError::NotFound)?;
+            let user = users::by_username(&pool, &username).await?.ok_or(oc_kit::OcError::NotFound)?;
             let pw = password::generate(20);
             users::set_password(&pool, user.id, &pw).await?;
             println!("New password for {username} (shown once): {pw}");
@@ -90,11 +78,7 @@ async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
     }
 }
 
-async fn serve(
-    cfg: OcConfig,
-    settings: Settings,
-    pool: sqlx::SqlitePool,
-) -> Result<(), oc_kit::OcError> {
+async fn serve(cfg: OcConfig, settings: Settings, pool: sqlx::SqlitePool) -> Result<(), oc_kit::OcError> {
     if let Some(pw) = domain::seed::ensure_demo_user(&pool, domain::now()).await? {
         tracing::warn!("Seeded user demo with password {pw} (shown once)");
     }
@@ -103,23 +87,17 @@ async fn serve(
     }
     let (router, st) = app::build(&cfg, pool.clone()).await?;
     demo::ingest::spawn(&st, &settings.ingest);
-    oc_kit::trash::spawn_purger(
-        domain::notes::NotesStore(pool),
-        std::time::Duration::from_secs(3600),
-    );
+    oc_kit::trash::spawn_purger(domain::notes::NotesStore(pool), std::time::Duration::from_secs(3600));
     let listener = tokio::net::TcpListener::bind(cfg.bind)
         .await
         .map_err(|e| oc_kit::OcError::Config(format!("Cannot listen on {}: {e}.", cfg.bind)))?;
     tracing::info!("Listening on {}", cfg.deployment()?.origin);
     let _ = sd_notify::notify(false, &[sd_notify::NotifyState::Ready]);
     spawn_watchdog();
-    axum::serve(
-        listener,
-        router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
-    )
-    .with_graceful_shutdown(shutdown())
-    .await
-    .map_err(oc_kit::OcError::internal)
+    axum::serve(listener, router.into_make_service_with_connect_info::<std::net::SocketAddr>())
+        .with_graceful_shutdown(shutdown())
+        .await
+        .map_err(oc_kit::OcError::internal)
 }
 
 fn spawn_watchdog() {

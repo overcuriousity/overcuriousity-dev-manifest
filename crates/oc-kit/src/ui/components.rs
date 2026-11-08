@@ -70,11 +70,7 @@ impl Button {
             ButtonVariant::Default => "",
             ButtonVariant::Danger => " oc-btn--danger",
         };
-        let extra = if self.class.is_empty() {
-            String::new()
-        } else {
-            format!(" {}", self.class)
-        };
+        let extra = if self.class.is_empty() { String::new() } else { format!(" {}", self.class) };
         format!("oc-btn{v}{extra}")
     }
 }
@@ -134,11 +130,7 @@ impl IconButton {
         }
     }
     fn svg(&self) -> Html {
-        self.icon.sized(if self.row {
-            IconSize::Row
-        } else {
-            IconSize::Tool
-        })
+        self.icon.sized(if self.row { IconSize::Row } else { IconSize::Tool })
     }
 }
 
@@ -159,18 +151,10 @@ pub struct Link {
 
 impl Link {
     pub fn prose(href: impl Into<String>, text: impl Into<String>) -> Self {
-        Self {
-            href: href.into(),
-            text: text.into(),
-            kind: LinkKind::Prose,
-        }
+        Self { href: href.into(), text: text.into(), kind: LinkKind::Prose }
     }
     pub fn data(href: impl Into<String>, text: impl Into<String>) -> Self {
-        Self {
-            href: href.into(),
-            text: text.into(),
-            kind: LinkKind::Data,
-        }
+        Self { href: href.into(), text: text.into(), kind: LinkKind::Data }
     }
 }
 
@@ -213,12 +197,7 @@ pub struct Notice {
 
 impl Notice {
     pub fn new(kind: NoticeKind, text: impl Into<String>) -> Self {
-        Self {
-            kind,
-            text: text.into(),
-            action: None,
-            autohide_ms: None,
-        }
+        Self { kind, text: text.into(), action: None, autohide_ms: None }
     }
     pub fn info(text: impl Into<String>) -> Self {
         Self::new(NoticeKind::Info, text)
@@ -242,10 +221,7 @@ impl Notice {
     }
     /// For a fragment that lands in the floating `#oc-notices` stack via an out-of-band swap.
     pub fn oob(self) -> Html {
-        Html(format!(
-            "<div hx-swap-oob=\"afterbegin:#oc-notices\">{}</div>",
-            Html::from(self)
-        ))
+        Html(format!("<div hx-swap-oob=\"afterbegin:#oc-notices\">{}</div>", Html::from(self)))
     }
 }
 
@@ -260,13 +236,7 @@ pub struct Fact {
 
 impl Fact {
     pub fn new(label: impl Into<String>, value: impl Into<String>) -> Self {
-        Self {
-            label: label.into(),
-            value: value.into(),
-            mono: false,
-            copy: false,
-            href: None,
-        }
+        Self { label: label.into(), value: value.into(), mono: false, copy: false, href: None }
     }
     pub fn mono(mut self) -> Self {
         self.mono = true;
@@ -300,10 +270,7 @@ pub struct Empty {
 
 impl Empty {
     pub fn new(text: impl Into<String>) -> Self {
-        Self {
-            text: text.into(),
-            action: None,
-        }
+        Self { text: text.into(), action: None }
     }
     pub fn action(mut self, b: Button) -> Self {
         self.action = Some(b);
@@ -320,10 +287,7 @@ pub struct CopyButton {
 
 impl CopyButton {
     pub fn new(value: impl Into<String>, label: impl AsRef<str>) -> Self {
-        Self {
-            value: value.into(),
-            label: label.as_ref().to_lowercase(),
-        }
+        Self { value: value.into(), label: label.as_ref().to_lowercase() }
     }
 }
 
@@ -380,18 +344,8 @@ pub struct Tab {
 }
 
 impl Tab {
-    pub fn new(
-        href: impl Into<String>,
-        icon: Icon,
-        label: impl Into<String>,
-        current: bool,
-    ) -> Self {
-        Self {
-            href: href.into(),
-            icon,
-            label: label.into(),
-            current,
-        }
+    pub fn new(href: impl Into<String>, icon: Icon, label: impl Into<String>, current: bool) -> Self {
+        Self { href: href.into(), icon, label: label.into(), current }
     }
     fn tab_icon(&self) -> Html {
         self.icon.sized(IconSize::Tab)

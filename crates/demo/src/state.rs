@@ -5,10 +5,7 @@ use oc_kit::sse::Broadcaster;
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
-pub const BRANDING: Branding = Branding {
-    app_name: "Incident journal",
-    logo_svg: include_str!("../assets/logo.svg"),
-};
+pub const BRANDING: Branding = Branding { app_name: "Incident journal", logo_svg: include_str!("../assets/logo.svg") };
 pub const APP: &str = "demo";
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -26,10 +23,7 @@ pub struct Ingest {
 
 impl Default for Ingest {
     fn default() -> Self {
-        Self {
-            enabled: true,
-            per_second: 2.0,
-        }
+        Self { enabled: true, per_second: 2.0 }
     }
 }
 

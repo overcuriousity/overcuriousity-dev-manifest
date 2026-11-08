@@ -50,10 +50,7 @@ const VOCABULARY: [&str; 39] = [
 #[test]
 fn every_vocabulary_icon_is_embedded() {
     for name in VOCABULARY {
-        assert!(
-            AssetSet::kit().get(&format!("icons/{name}.svg")).is_some(),
-            "{name}"
-        );
+        assert!(AssetSet::kit().get(&format!("icons/{name}.svg")).is_some(), "{name}");
     }
 }
 
@@ -61,28 +58,16 @@ fn every_vocabulary_icon_is_embedded() {
 async fn asset_urls_carry_the_build_hash_and_are_immutable() {
     let url = AssetSet::kit().url("fonts/atkinson-next-400.woff2");
     assert!(url.starts_with(&format!("/_oc/{}/", AssetSet::kit().hash())));
-    let res = asset_router()
-        .oneshot(Request::get(&url).body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+    let res = asset_router().oneshot(Request::get(&url).body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(res.status(), StatusCode::OK);
-    assert!(
-        res.headers()[header::CACHE_CONTROL]
-            .to_str()
-            .unwrap()
-            .contains("immutable")
-    );
+    assert!(res.headers()[header::CACHE_CONTROL].to_str().unwrap().contains("immutable"));
     assert_eq!(res.headers()[header::CONTENT_TYPE], "font/woff2");
 }
 
 #[tokio::test]
 async fn a_stale_hash_is_not_found() {
     let res = asset_router()
-        .oneshot(
-            Request::get("/_oc/000000000000/css/oc.css")
-                .body(Body::empty())
-                .unwrap(),
-        )
+        .oneshot(Request::get("/_oc/000000000000/css/oc.css").body(Body::empty()).unwrap())
         .await
         .unwrap();
     assert_eq!(res.status(), StatusCode::NOT_FOUND);

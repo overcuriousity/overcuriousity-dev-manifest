@@ -32,10 +32,7 @@ pub struct Limits {
 
 impl Default for Limits {
     fn default() -> Self {
-        Self {
-            body_bytes: 1024 * 1024,
-            timeout: Duration::from_secs(30),
-        }
+        Self { body_bytes: 1024 * 1024, timeout: Duration::from_secs(30) }
     }
 }
 
@@ -47,10 +44,7 @@ pub(crate) struct Ctx {
 /// Wraps a router in the full security stack. Apply it last, around everything the app serves.
 /// The timeout bounds producing response headers, so long-lived SSE bodies are not cut off.
 pub fn secure(router: Router, dep: &Deployment, proxies: &[IpNet], limits: Limits) -> Router {
-    let ctx = Arc::new(Ctx {
-        dep: dep.clone(),
-        proxies: proxies.to_vec(),
-    });
+    let ctx = Arc::new(Ctx { dep: dep.clone(), proxies: proxies.to_vec() });
     router
         .layer(from_fn_with_state(ctx.clone(), headers::security_headers))
         .layer(CompressionLayer::new())
@@ -58,13 +52,7 @@ pub fn secure(router: Router, dep: &Deployment, proxies: &[IpNet], limits: Limit
         .layer(axum::extract::DefaultBodyLimit::disable())
         .layer(from_fn_with_state(ctx.clone(), origin::origin_check))
         .layer(from_fn_with_state(ctx, origin::host_check))
-        .layer(TimeoutLayer::with_status_code(
-            axum::http::StatusCode::REQUEST_TIMEOUT,
-            limits.timeout,
-        ))
+        .layer(TimeoutLayer::with_status_code(axum::http::StatusCode::REQUEST_TIMEOUT, limits.timeout))
         .layer(TraceLayer::new_for_http())
-        .layer(SetSensitiveRequestHeadersLayer::new([
-            header::AUTHORIZATION,
-            header::COOKIE,
-        ]))
+        .layer(SetSensitiveRequestHeadersLayer::new([header::AUTHORIZATION, header::COOKIE]))
 }

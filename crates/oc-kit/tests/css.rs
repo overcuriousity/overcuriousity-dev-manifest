@@ -7,19 +7,11 @@ fn css(path: &str) -> String {
 }
 
 fn all_css() -> String {
-    [
-        "css/oc.css",
-        "css/profile-workbench.css",
-        "css/profile-everyday.css",
-    ]
-    .map(css)
-    .join("\n")
+    ["css/oc.css", "css/profile-workbench.css", "css/profile-everyday.css"].map(css).join("\n")
 }
 
 fn rule<'a>(css: &'a str, selector: &str) -> &'a str {
-    let start = css
-        .find(selector)
-        .unwrap_or_else(|| panic!("no rule {selector}"));
+    let start = css.find(selector).unwrap_or_else(|| panic!("no rule {selector}"));
     let open = start + css[start..].find('{').unwrap();
     &css[open..open + css[open..].find('}').unwrap()]
 }
@@ -36,11 +28,7 @@ fn no_font_size_falls_below_12px_at_compact() {
     let c = all_css();
     for decl in c.split("font-size:").skip(1) {
         let value = decl.split([';', '}']).next().unwrap().trim();
-        if value.starts_with("max(")
-            || value.starts_with("var(")
-            || value.ends_with('%')
-            || value == "inherit"
-        {
+        if value.starts_with("max(") || value.starts_with("var(") || value.ends_with('%') || value == "inherit" {
             continue;
         }
         let px = if let Some(rem) = value.strip_suffix("rem") {
@@ -85,9 +73,6 @@ fn form_fields_use_the_control_border() {
 fn only_the_float_shadow_is_used() {
     for decl in all_css().split("box-shadow:").skip(1) {
         let value = decl.split([';', '}']).next().unwrap().trim();
-        assert!(
-            value == "var(--shadow-float)" || value == "none",
-            "box-shadow {value}"
-        );
+        assert!(value == "var(--shadow-float)" || value == "none", "box-shadow {value}");
     }
 }

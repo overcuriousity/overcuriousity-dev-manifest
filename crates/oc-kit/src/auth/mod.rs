@@ -40,35 +40,16 @@ impl AuthState {
         branding: Branding,
         token_prefix: &'static str,
     ) -> Result<Self, OcError> {
-        let webauthn = if cfg.passkeys {
-            Some(passkeys::build(&dep, branding.app_name)?)
-        } else {
-            None
-        };
-        let oidc = cfg
-            .oidc
-            .as_ref()
-            .map(|o| oidc::Oidc::new(o, &dep))
-            .transpose()?;
-        Ok(Self {
-            pool,
-            dep,
-            cfg,
-            app,
-            branding,
-            token_prefix,
-            webauthn,
-            oidc,
-        })
+        let webauthn = if cfg.passkeys { Some(passkeys::build(&dep, branding.app_name)?) } else { None };
+        let oidc = cfg.oidc.as_ref().map(|o| oidc::Oidc::new(o, &dep)).transpose()?;
+        Ok(Self { pool, dep, cfg, app, branding, token_prefix, webauthn, oidc })
     }
 }
 
 /// Only same-origin absolute paths are followed after sign-in.
 pub fn safe_next(next: &str) -> &str {
-    let ok = next.starts_with('/')
-        && !next.starts_with("//")
-        && !next.starts_with("/\\")
-        && !next.contains(['\r', '\n']);
+    let ok =
+        next.starts_with('/') && !next.starts_with("//") && !next.starts_with("/\\") && !next.contains(['\r', '\n']);
     if ok { next } else { "/" }
 }
 
@@ -78,18 +59,10 @@ pub fn router(state: AuthState) -> Router<AuthState> {
     if state.oidc.is_some() {
         r = r.merge(oidc::routes());
     }
-    if state.webauthn.is_some() {
-        r.merge(passkeys::routes())
-    } else {
-        r
-    }
+    if state.webauthn.is_some() { r.merge(passkeys::routes()) } else { r }
 }
 
-pub(crate) fn render_sign_in(
-    st: &AuthState,
-    next: &str,
-    notice: Option<&str>,
-) -> axum::response::Response {
+pub(crate) fn render_sign_in(st: &AuthState, next: &str, notice: Option<&str>) -> axum::response::Response {
     use crate::ui::{Html, Notice, Page, Profile, SignInForm, TopBar};
     use axum::response::IntoResponse;
     let form = SignInForm {
@@ -100,12 +73,5 @@ pub(crate) fn render_sign_in(
         next: next.to_owned(),
     };
     let top = TopBar::new(st.branding, "/", crate::prefs::Prefs::default(), None);
-    Page::new(
-        "Sign in",
-        Profile::Everyday,
-        top,
-        Html::from(form),
-        crate::prefs::PrefsSource::Local,
-    )
-    .into_response()
+    Page::new("Sign in", Profile::Everyday, top, Html::from(form), crate::prefs::PrefsSource::Local).into_response()
 }

@@ -51,8 +51,7 @@ pub struct NoteArgs {
 }
 
 fn json(v: impl serde::Serialize) -> Result<CallToolResult, ErrorData> {
-    let text =
-        serde_json::to_string(&v).map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
+    let text = serde_json::to_string(&v).map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
     Ok(CallToolResult::success(vec![ContentBlock::text(text)]))
 }
 
@@ -67,43 +66,22 @@ impl Mcp {
         json(cases::list(&self.st.pool).await.map_err(fail)?)
     }
 
-    #[tool(
-        description = "Search a case's events, newest first. Returns items and next_cursor for the next page."
-    )]
-    async fn search_events(
-        &self,
-        Parameters(a): Parameters<SearchArgs>,
-    ) -> Result<CallToolResult, ErrorData> {
+    #[tool(description = "Search a case's events, newest first. Returns items and next_cursor for the next page.")]
+    async fn search_events(&self, Parameters(a): Parameters<SearchArgs>) -> Result<CallToolResult, ErrorData> {
         let q = query::parse(&a.query).map_err(fail)?;
-        let cursor = a
-            .cursor
-            .as_deref()
-            .map(Cursor::decode)
-            .transpose()
+        let cursor = a.cursor.as_deref().map(Cursor::decode).transpose().map_err(fail)?;
+        let page = events::search(&self.st.pool, a.case_id, &q, cursor, a.limit.unwrap_or(50).clamp(1, 200))
+            .await
             .map_err(fail)?;
-        let page = events::search(
-            &self.st.pool,
-            a.case_id,
-            &q,
-            cursor,
-            a.limit.unwrap_or(50).clamp(1, 200),
-        )
-        .await
-        .map_err(fail)?;
         json(page)
     }
 
     #[tool(description = "Get every field of one event by id.")]
-    async fn get_event(
-        &self,
-        Parameters(a): Parameters<EventArgs>,
-    ) -> Result<CallToolResult, ErrorData> {
+    async fn get_event(&self, Parameters(a): Parameters<EventArgs>) -> Result<CallToolResult, ErrorData> {
         json(events::get(&self.st.pool, a.id).await.map_err(fail)?)
     }
 
-    #[tool(
-        description = "Add a note, optionally attached to a case. The note is authored by the token's user."
-    )]
+    #[tool(description = "Add a note, optionally attached to a case. The note is authored by the token's user.")]
     async fn add_note(
         &self,
         ctx: RequestContext<RoleServer>,
@@ -115,15 +93,8 @@ impl Mcp {
             .and_then(|p| p.extensions.get::<CurrentUser>())
             .map(|u| u.0.id)
             .ok_or_else(|| ErrorData::invalid_request("Sign in first.", None))?;
-        let input = NoteInput {
-            case_id: a.case_id,
-            title: a.title,
-            body: a.body,
-            tags: Vec::new(),
-        };
-        let id = notes::create(&self.st.pool, user, &input, now())
-            .await
-            .map_err(fail)?;
+        let input = NoteInput { case_id: a.case_id, title: a.title, body: a.body, tags: Vec::new() };
+        let id = notes::create(&self.st.pool, user, &input, now()).await.map_err(fail)?;
         json(notes::get(&self.st.pool, id).await.map_err(fail)?)
     }
 }
@@ -131,11 +102,7 @@ impl Mcp {
 /// MCP clients authenticate with a bearer token; the 401 points OAuth-capable clients at the IdP when one is configured.
 async fn require_user(State(st): State<AppState>, req: Request, next: Next) -> Response {
     let (mut parts, body) = req.into_parts();
-    match <CurrentUser as axum::extract::FromRequestParts<AppState>>::from_request_parts(
-        &mut parts, &st,
-    )
-    .await
-    {
+    match <CurrentUser as axum::extract::FromRequestParts<AppState>>::from_request_parts(&mut parts, &st).await {
         Ok(u) => {
             parts.extensions.insert(u);
             next.run(Request::from_parts(parts, body)).await
@@ -145,22 +112,12 @@ async fn require_user(State(st): State<AppState>, req: Request, next: Next) -> R
 }
 
 pub fn router(st: AppState) -> axum::Router<AppState> {
-    let mut hosts = vec![
-        "localhost".to_owned(),
-        "127.0.0.1".to_owned(),
-        "::1".to_owned(),
-    ];
+    let mut hosts = vec!["localhost".to_owned(), "127.0.0.1".to_owned(), "::1".to_owned()];
     hosts.push(st.auth.dep.rp_id.clone());
     let config = StreamableHttpServerConfig::default().with_allowed_hosts(hosts);
     let service = {
         let st = st.clone();
-        StreamableHttpService::new(
-            move || Ok(Mcp { st: st.clone() }),
-            Arc::new(LocalSessionManager::default()),
-            config,
-        )
+        StreamableHttpService::new(move || Ok(Mcp { st: st.clone() }), Arc::new(LocalSessionManager::default()), config)
     };
-    axum::Router::new()
-        .nest_service("/mcp", service)
-        .layer(axum::middleware::from_fn_with_state(st, require_user))
+    axum::Router::new().nest_service("/mcp", service).layer(axum::middleware::from_fn_with_state(st, require_user))
 }

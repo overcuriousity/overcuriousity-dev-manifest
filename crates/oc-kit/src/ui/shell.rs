@@ -26,21 +26,8 @@ pub struct TopBar {
 }
 
 impl TopBar {
-    pub fn new(
-        branding: Branding,
-        home: impl Into<String>,
-        prefs: Prefs,
-        user: Option<User>,
-    ) -> Self {
-        Self {
-            branding,
-            home: home.into(),
-            breadcrumb: Vec::new(),
-            nav: Vec::new(),
-            search: None,
-            prefs,
-            user,
-        }
+    pub fn new(branding: Branding, home: impl Into<String>, prefs: Prefs, user: Option<User>) -> Self {
+        Self { branding, home: home.into(), breadcrumb: Vec::new(), nav: Vec::new(), search: None, prefs, user }
     }
 
     fn theme_label(&self) -> &'static str {
@@ -53,18 +40,10 @@ impl TopBar {
 
     fn density_button(&self) -> IconButton {
         let compact = self.prefs.density == Density::Compact;
-        let label = if compact {
-            "Use default text size"
-        } else {
-            "Use compact text size"
-        };
-        IconButton::new(Icon::TextSize, label)
-            .pressed(compact)
-            .attrs(
-                super::HxAttrs::new()
-                    .with("data-oc-pref", "density")
-                    .with("data-oc-value", self.prefs.density.as_str()),
-            )
+        let label = if compact { "Use default text size" } else { "Use compact text size" };
+        IconButton::new(Icon::TextSize, label).pressed(compact).attrs(
+            super::HxAttrs::new().with("data-oc-pref", "density").with("data-oc-value", self.prefs.density.as_str()),
+        )
     }
 }
 
@@ -72,16 +51,14 @@ impl TopBar {
 fn theme_colors() -> &'static (String, String) {
     static C: std::sync::OnceLock<(String, String)> = std::sync::OnceLock::new();
     C.get_or_init(|| {
-        let (light, dark) =
-            crate::tokens::parse_theme_blocks(include_str!("../../assets/css/00-tokens.css"));
+        let (light, dark) = crate::tokens::parse_theme_blocks(include_str!("../../assets/css/00-tokens.css"));
         let get = |t: &crate::tokens::Theme| t.get("--theme-color").cloned().unwrap_or_default();
         (get(&light), get(&dark))
     })
 }
 
-pub const KIT_MODULES: [&str; 11] = [
-    "prefs", "copy", "notices", "menu", "keys", "dialog", "rows", "pane", "busy", "passkey", "live",
-];
+pub const KIT_MODULES: [&str; 11] =
+    ["prefs", "copy", "notices", "menu", "keys", "dialog", "rows", "pane", "busy", "passkey", "live"];
 
 #[derive(Debug, Clone, Template)]
 #[template(path = "oc/page.html")]
@@ -107,11 +84,8 @@ pub struct Page {
     pub notices: Html,
 }
 
-pub const BASE_SHORTCUTS: [(&str, &str); 3] = [
-    ("?", "Show shortcuts"),
-    ("/", "Focus search"),
-    ("Esc", "Close the open layer"),
-];
+pub const BASE_SHORTCUTS: [(&str, &str); 3] =
+    [("?", "Show shortcuts"), ("/", "Focus search"), ("Esc", "Close the open layer")];
 
 impl Page {
     pub fn new(
@@ -176,11 +150,7 @@ impl Page {
     }
 
     fn modules(&self) -> Vec<String> {
-        KIT_MODULES
-            .iter()
-            .map(|m| self.asset(&format!("js/{m}.js")))
-            .chain(self.extra_js.iter().cloned())
-            .collect()
+        KIT_MODULES.iter().map(|m| self.asset(&format!("js/{m}.js"))).chain(self.extra_js.iter().cloned()).collect()
     }
 }
 

@@ -4,6 +4,7 @@ pub mod errors;
 pub mod inspector;
 pub mod live;
 pub mod notes;
+pub mod pwa;
 pub mod timeline;
 
 use axum::Router;
@@ -25,6 +26,7 @@ pub fn routes() -> Router<AppState> {
         .merge(inspector::routes())
         .merge(live::routes())
         .merge(account::routes())
+        .merge(pwa::routes())
 }
 
 /// Everything a signed-in page needs to render its shell.
@@ -38,32 +40,19 @@ impl FromRequestParts<AppState> for Ctx {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, st: &AppState) -> Result<Self, Self::Rejection> {
-        let CurrentUser(user) = CurrentUser::from_request_parts(parts, st)
-            .await
-            .map_err(IntoResponse::into_response)?;
-        let PagePrefs(prefs, source) = PagePrefs::from_request_parts(parts, st)
-            .await
-            .map_err(IntoResponse::into_response)?;
-        Ok(Ctx {
-            user,
-            prefs,
-            source,
-        })
+        let CurrentUser(user) =
+            CurrentUser::from_request_parts(parts, st).await.map_err(IntoResponse::into_response)?;
+        let PagePrefs(prefs, source) =
+            PagePrefs::from_request_parts(parts, st).await.map_err(IntoResponse::into_response)?;
+        Ok(Ctx { user, prefs, source })
     }
 }
 
 impl OptionalFromRequestParts<AppState> for Ctx {
     type Rejection = Response;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        st: &AppState,
-    ) -> Result<Option<Self>, Self::Rejection> {
-        Ok(
-            <Ctx as FromRequestParts<AppState>>::from_request_parts(parts, st)
-                .await
-                .ok(),
-        )
+    async fn from_request_parts(parts: &mut Parts, st: &AppState) -> Result<Option<Self>, Self::Rejection> {
+        Ok(<Ctx as FromRequestParts<AppState>>::from_request_parts(parts, st).await.ok())
     }
 }
 
@@ -75,18 +64,16 @@ const NAV: [(&str, Icon, &str); 4] = [
 ];
 
 fn tabs(current: &str) -> Vec<Tab> {
-    NAV.iter()
-        .map(|(href, icon, label)| Tab::new(*href, *icon, *label, *href == current))
-        .collect()
+    NAV.iter().map(|(href, icon, label)| Tab::new(*href, *icon, *label, *href == current)).collect()
 }
 
 pub fn everyday(ctx: &Ctx, current: &str, title: &str, body: Html) -> Page {
     let mut top = TopBar::new(BRANDING, "/notes", ctx.prefs, Some(ctx.user.clone()));
     top.nav = tabs(current);
     let mut page = Page::new(title, Profile::Everyday, top, body, ctx.source);
-    page.tabbar = Some(TabBar {
-        items: tabs(current),
-    });
+    page.tabbar = Some(TabBar { items: tabs(current) });
+    page.head = pwa::head();
+    page.extra_js = vec![pwa::script()];
     page
 }
 
@@ -95,10 +82,7 @@ pub fn render<T: askama::Template>(t: &T) -> Html {
 }
 
 pub fn paragraphs(text: &str) -> Vec<String> {
-    text.split("\n\n")
-        .map(|p| p.trim().to_owned())
-        .filter(|p| !p.is_empty())
-        .collect()
+    text.split("\n\n").map(|p| p.trim().to_owned()).filter(|p| !p.is_empty()).collect()
 }
 
 pub fn when(t: &time::OffsetDateTime) -> String {

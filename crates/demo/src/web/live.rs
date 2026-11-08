@@ -25,10 +25,7 @@ pub fn routes() -> Router<AppState> {
 
 async fn live(State(st): State<AppState>, _ctx: Ctx, Path(id): Path<i64>) -> Response {
     sse_response(st.ingest.subscribe(), move |e| {
-        (e.case_id == id).then(|| SseEvent {
-            name: "ingest",
-            data: String::new(),
-        })
+        (e.case_id == id).then(|| SseEvent { name: "ingest", data: String::new() })
     })
 }
 
@@ -60,11 +57,7 @@ async fn histogram(
     Query(lq): Query<LiveQuery>,
 ) -> Result<Response, OcError> {
     let Ok(q) = query::parse(&lq.q) else {
-        return Ok((
-            StatusCode::BAD_REQUEST,
-            "Fix the search to see the histogram.",
-        )
-            .into_response());
+        return Ok((StatusCode::BAD_REQUEST, "Fix the search to see the histogram.").into_response());
     };
     let h = events::histogram(&st.pool, id, &q, 60).await?;
     let total: u32 = h.buckets.iter().sum();
@@ -81,9 +74,7 @@ async fn histogram(
             (i as f64 * bw + 1.0, H - bh, (bw - 2.0).max(1.0), bh)
         })
         .collect();
-    let visible = events::search(&st.pool, id, &q, None, PAGE_SIZE)
-        .await?
-        .items;
+    let visible = events::search(&st.pool, id, &q, None, PAGE_SIZE).await?.items;
     let span = (h.end - h.start).max(1) as f64;
     let window = match (visible.last(), visible.first()) {
         (Some(old), Some(new)) if h.end > h.start => {
@@ -98,14 +89,7 @@ async fn histogram(
     } else {
         format!("{total} events between {start} and {end}; the marked range is on screen.")
     };
-    Ok(render(&Histogram {
-        label,
-        bars,
-        window,
-        start,
-        end,
-    })
-    .into_response())
+    Ok(render(&Histogram { label, bars, window, start, end }).into_response())
 }
 
 async fn new_count(
@@ -121,16 +105,8 @@ async fn new_count(
     if n == 0 {
         return Ok(Html::default().into_response());
     }
-    let label = if n == 1 {
-        "1 new event".to_owned()
-    } else {
-        format!("{n} new events")
-    };
-    let url = format!(
-        "/cases/{id}/timeline/new?after={}&q={}",
-        lq.after,
-        urlencode(&q.to_string())
-    );
+    let label = if n == 1 { "1 new event".to_owned() } else { format!("{n} new events") };
+    let url = format!("/cases/{id}/timeline/new?after={}&q={}", lq.after, urlencode(&q.to_string()));
     Ok(Html(format!(
         "<span class=\"oc-row\"><span>{label}</span><button type=\"button\" class=\"oc-btn\" id=\"oc-ingest-show\" hx-get=\"{url}\" hx-target=\"#oc-rows\" hx-swap=\"afterbegin\">Show</button></span>"
     ))
@@ -148,15 +124,9 @@ async fn new_rows(
     };
     let newer = events::newer_than(&st.pool, id, &q, lq.after, 500).await?;
     let max = events::max_id(&st.pool, id).await?.max(lq.after);
-    let rows = render(&Rows {
-        case_id: id,
-        events: &newer,
-        q: q.to_string(),
-        next: None,
-    });
-    let after = Html(format!(
-        "<input type=\"hidden\" id=\"after\" name=\"after\" value=\"{max}\" hx-swap-oob=\"true\">"
-    ));
+    let rows = render(&Rows { case_id: id, events: &newer, q: q.to_string(), next: None });
+    let after =
+        Html(format!("<input type=\"hidden\" id=\"after\" name=\"after\" value=\"{max}\" hx-swap-oob=\"true\">"));
     let clear = Html("<div id=\"oc-ingest-notice\" hx-swap-oob=\"innerHTML\"></div>".into());
     Ok(Html::join([rows, after, clear]).into_response())
 }

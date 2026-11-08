@@ -16,12 +16,7 @@ fn peer(parts: &Parts) -> Option<IpAddr> {
         .extensions
         .get::<ConnectInfo<SocketAddr>>()
         .map(|c| c.0.ip())
-        .or_else(|| {
-            parts
-                .extensions
-                .get::<MockConnectInfo<SocketAddr>>()
-                .map(|c| c.0.ip())
-        })
+        .or_else(|| parts.extensions.get::<MockConnectInfo<SocketAddr>>().map(|c| c.0.ip()))
 }
 
 pub(super) fn resolve(parts: &Parts, proxies: &[IpNet]) -> Option<IpAddr> {
@@ -38,13 +33,7 @@ pub(super) fn resolve(parts: &Parts, proxies: &[IpNet]) -> Option<IpAddr> {
         .flat_map(|v| v.split(','))
         .filter_map(|s| s.trim().parse::<IpAddr>().ok())
         .collect::<Vec<_>>();
-    Some(
-        forwarded
-            .into_iter()
-            .rev()
-            .find(|ip| !trusted(ip))
-            .unwrap_or(peer),
-    )
+    Some(forwarded.into_iter().rev().find(|ip| !trusted(ip)).unwrap_or(peer))
 }
 
 pub(super) fn trusted_peer(parts: &Parts, proxies: &[IpNet]) -> bool {
@@ -55,8 +44,10 @@ impl<S: Send + Sync> FromRequestParts<S> for ClientIp {
     type Rejection = OcError;
 
     async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
-        parts.extensions.get::<ClientIp>().copied().ok_or_else(|| {
-            OcError::Internal("ClientIp requires the oc security layer and ConnectInfo.".into())
-        })
+        parts
+            .extensions
+            .get::<ClientIp>()
+            .copied()
+            .ok_or_else(|| OcError::Internal("ClientIp requires the oc security layer and ConnectInfo.".into()))
     }
 }

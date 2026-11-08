@@ -3,19 +3,13 @@
 
 use std::fmt;
 
-pub const FIELDS: [&str; 8] = [
-    "host", "user", "event_id", "level", "source", "process", "verdict", "pinned",
-];
+pub const FIELDS: [&str; 8] = ["host", "user", "event_id", "level", "source", "process", "verdict", "pinned"];
 const MAX_TERMS: usize = 32;
 const MAX_VALUE: usize = 256;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Term {
-    Field {
-        field: &'static str,
-        value: String,
-        negate: bool,
-    },
+    Field { field: &'static str, value: String, negate: bool },
     Text(String),
 }
 
@@ -98,21 +92,14 @@ pub fn parse(input: &str) -> Result<Query, QueryError> {
             _ => (false, tok.as_str()),
         };
         let term = match body.split_once(':') {
-            Some((name, value))
-                if !name.is_empty()
-                    && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') =>
-            {
+            Some((name, value)) if !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') => {
                 let field = FIELDS
                     .iter()
                     .find(|f| f.eq_ignore_ascii_case(name))
                     .copied()
                     .ok_or_else(|| QueryError::UnknownField(name.to_owned()))?;
                 validate(field, value)?;
-                Term::Field {
-                    field,
-                    value: value.to_owned(),
-                    negate,
-                }
+                Term::Field { field, value: value.to_owned(), negate }
             }
             _ => Term::Text(tok.clone()),
         };
@@ -136,26 +123,15 @@ fn validate(field: &'static str, value: &str) -> Result<(), QueryError> {
 }
 
 fn quote(v: &str) -> String {
-    if v.is_empty() || v.chars().any(char::is_whitespace) {
-        format!("\"{v}\"")
-    } else {
-        v.to_owned()
-    }
+    if v.is_empty() || v.chars().any(char::is_whitespace) { format!("\"{v}\"") } else { v.to_owned() }
 }
 
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Term::Field {
-                field,
-                value,
-                negate,
-            } => write!(
-                f,
-                "{}{field}:{}",
-                if *negate { "-" } else { "" },
-                quote(value)
-            ),
+            Term::Field { field, value, negate } => {
+                write!(f, "{}{field}:{}", if *negate { "-" } else { "" }, quote(value))
+            }
             Term::Text(t) => f.write_str(&quote(t)),
         }
     }

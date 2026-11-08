@@ -7,8 +7,8 @@ use axum::routing::get;
 use oc_kit::OcError;
 use oc_kit::prefs::Density;
 use oc_kit::ui::{
-    Button, CopyButton, Empty, Html, HxAttrs, Icon, IconButton, Notice, Page, Pill, Profile,
-    RowActions, SearchBox, StatusBar, TopBar,
+    Button, CopyButton, Empty, Html, HxAttrs, Icon, IconButton, Notice, Page, Pill, Profile, RowActions, SearchBox,
+    StatusBar, TopBar,
 };
 use serde::Deserialize;
 
@@ -45,9 +45,7 @@ pub fn urlencode(s: &str) -> String {
     let mut out = String::new();
     for b in s.bytes() {
         match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                out.push(char::from(b))
-            }
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(char::from(b)),
             _ => out.push_str(&format!("%{b:02X}")),
         }
     }
@@ -64,11 +62,7 @@ pub fn ts(ms: &i64) -> String {
 }
 
 pub fn verdict(e: &Event) -> Html {
-    render(&super::inspector::Verdict {
-        event_id: e.id,
-        state: e.verdict.clone().unwrap_or_default(),
-        oob: true,
-    })
+    render(&super::inspector::Verdict { event_id: e.id, state: e.verdict.clone().unwrap_or_default(), oob: true })
 }
 
 pub fn level_class(level: &str) -> &'static str {
@@ -99,56 +93,26 @@ pub struct Rows<'a> {
 
 impl Rows<'_> {
     fn actions(&self, e: &Event) -> RowActions {
-        let host = Term::Field {
-            field: "host",
-            value: e.host.clone(),
-            negate: false,
-        };
-        let not_host = Term::Field {
-            field: "host",
-            value: e.host.clone(),
-            negate: true,
-        };
+        let host = Term::Field { field: "host", value: e.host.clone(), negate: false };
+        let not_host = Term::Field { field: "host", value: e.host.clone(), negate: true };
         let parsed = query::parse(&self.q).unwrap_or_default();
-        let pin_label = if e.pinned_at.is_some() {
-            "Unpin"
-        } else {
-            "Pin to story"
-        };
-        let pin_url = format!(
-            "/events/{}/{}",
-            e.id,
-            if e.pinned_at.is_some() {
-                "unpin"
-            } else {
-                "pin"
-            }
-        );
+        let pin_label = if e.pinned_at.is_some() { "Unpin" } else { "Pin to story" };
+        let pin_url = format!("/events/{}/{}", e.id, if e.pinned_at.is_some() { "unpin" } else { "pin" });
         RowActions {
             actions: vec![
                 IconButton::new(Icon::FilterTo, format!("Filter to {}", e.host))
                     .shortcut("F")
                     .row(true)
-                    .attrs(shell(&timeline_url(
-                        self.case_id,
-                        &parsed.with(host).to_string(),
-                    ))),
+                    .attrs(shell(&timeline_url(self.case_id, &parsed.with(host).to_string()))),
                 IconButton::new(Icon::Exclude, format!("Exclude {}", e.host))
                     .shortcut("X")
                     .row(true)
-                    .attrs(shell(&timeline_url(
-                        self.case_id,
-                        &parsed.with(not_host).to_string(),
-                    ))),
+                    .attrs(shell(&timeline_url(self.case_id, &parsed.with(not_host).to_string()))),
                 IconButton::new(Icon::Pin, pin_label)
                     .shortcut("P")
                     .row(true)
                     .pressed(e.pinned_at.is_some())
-                    .attrs(
-                        HxAttrs::post(pin_url)
-                            .target("closest tr")
-                            .swap("outerHTML"),
-                    ),
+                    .attrs(HxAttrs::post(pin_url).target("closest tr").swap("outerHTML")),
             ],
         }
     }
@@ -159,11 +123,7 @@ impl Rows<'_> {
 
     fn next_url(&self) -> String {
         match &self.next {
-            Some(c) => format!(
-                "/cases/{}/timeline/rows?q={}&cursor={c}",
-                self.case_id,
-                urlencode(&self.q)
-            ),
+            Some(c) => format!("/cases/{}/timeline/rows?q={}&cursor={c}", self.case_id, urlencode(&self.q)),
             None => String::new(),
         }
     }
@@ -184,14 +144,7 @@ impl Facets<'_> {
         };
         shell(&timeline_url(
             self.case_id,
-            &self
-                .q
-                .with(Term::Field {
-                    field,
-                    value: value.to_owned(),
-                    negate: false,
-                })
-                .to_string(),
+            &self.q.with(Term::Field { field, value: value.to_owned(), negate: false }).to_string(),
         ))
     }
 
@@ -224,16 +177,8 @@ fn pills(case_id: i64, q: &Q) -> Vec<Pill> {
         .enumerate()
         .map(|(i, t)| {
             let rest = q.without(i).to_string();
-            let url = format!(
-                "/cases/{case_id}/timeline?q={}&undo={}",
-                urlencode(&rest),
-                urlencode(&q.to_string())
-            );
-            Pill {
-                text: t.to_string(),
-                exclude: matches!(t, Term::Field { negate: true, .. }),
-                remove: shell(&url),
-            }
+            let url = format!("/cases/{case_id}/timeline?q={}&undo={}", urlencode(&rest), urlencode(&q.to_string()));
+            Pill { text: t.to_string(), exclude: matches!(t, Term::Field { negate: true, .. }), remove: shell(&url) }
         })
         .collect()
 }
@@ -261,10 +206,8 @@ pub const SHORTCUTS: [(&str, &str); 11] = [
 
 pub fn workbench(ctx: &Ctx, case: &cases::Case, q: &str, body: Html) -> Page {
     let mut top = TopBar::new(BRANDING, "/notes", ctx.prefs, Some(ctx.user.clone()));
-    top.breadcrumb = vec![
-        ("/cases".into(), "Cases".into()),
-        (format!("/cases/{}/timeline", case.id), case.name.clone()),
-    ];
+    top.breadcrumb =
+        vec![("/cases".into(), "Cases".into()), (format!("/cases/{}/timeline", case.id), case.name.clone())];
     top.search = Some(SearchBox {
         name: "q".into(),
         value: q.to_owned(),
@@ -273,28 +216,22 @@ pub fn workbench(ctx: &Ctx, case: &cases::Case, q: &str, body: Html) -> Page {
     });
     let mut page = Page::new(case.name.clone(), Profile::Workbench, top, body, ctx.source);
     page.extra_css = vec![super::demo_css()];
+    page.head = super::pwa::head();
     page.rail = vec![
         IconButton::new(Icon::Facets, "Show or hide filters")
             .shortcut("\\")
             .attrs(HxAttrs::new().with("data-oc-toggle", "facets")),
-        IconButton::new(Icon::Story, "Show or hide the story")
-            .shortcut("S")
-            .pressed(false)
-            .attrs(
-                HxAttrs::get(format!("/cases/{}/story", case.id))
-                    .target("#pane-body")
-                    .with("data-oc-toggle", "pane")
-                    .with("hx-trigger", "click once"),
-            ),
+        IconButton::new(Icon::Story, "Show or hide the story").shortcut("S").pressed(false).attrs(
+            HxAttrs::get(format!("/cases/{}/story", case.id))
+                .target("#pane-body")
+                .with("data-oc-toggle", "pane")
+                .with("hx-trigger", "click once"),
+        ),
         IconButton::new(Icon::Notes, "Notes of this case").attrs(super::notes::shell_get("/notes")),
     ];
     page.shortcuts = SHORTCUTS.to_vec();
-    page.pane = Some(Html(
-        "<div id=\"pane-body\" class=\"oc-stack\"></div>".into(),
-    ));
-    page.inspector = Some(Html::from(Empty::new(
-        "Select an event to see its details.",
-    )));
+    page.pane = Some(Html("<div id=\"pane-body\" class=\"oc-stack\"></div>".into()));
+    page.inspector = Some(Html::from(Empty::new("Select an event to see its details.")));
     page
 }
 
@@ -310,12 +247,7 @@ async fn page(
     let matched = events::count(&st.pool, id, &q, None).await?;
     let after = events::max_id(&st.pool, id).await?;
     let fac = events::facets(&st.pool, id, &q).await?;
-    let rows = render(&Rows {
-        case_id: id,
-        events: &page.items,
-        q: q.to_string(),
-        next: page.next_cursor.clone(),
-    });
+    let rows = render(&Rows { case_id: id, events: &page.items, q: q.to_string(), next: page.next_cursor.clone() });
     let empty = page.items.is_empty().then(|| {
         if case.events == 0 {
             Empty::new("No events in this case yet. New events appear here as they are ingested.")
@@ -335,22 +267,11 @@ async fn page(
         q: &qs,
     });
     let mut p = workbench(&ctx, &case, &tq.q, body);
-    p.facets = Some(render(&Facets {
-        case_id: id,
-        q: &q,
-        facets: &fac,
-    }));
-    let density = if ctx.prefs.density == Density::Compact {
-        "Compact"
-    } else {
-        "Default size"
-    };
+    p.facets = Some(render(&Facets { case_id: id, q: &q, facets: &fac }));
+    let density = if ctx.prefs.density == Density::Compact { "Compact" } else { "Default size" };
     p.statusbar = Some(StatusBar {
         items: vec![
-            Html(format!(
-                "<span id=\"oc-match-count\">{matched} of {} events</span>",
-                case.events
-            )),
+            Html(format!("<span id=\"oc-match-count\">{matched} of {} events</span>", case.events)),
             Html::from(oc_kit::ui::Link::data("/cases", "All cases")),
             Html(format!(
                 "<span class=\"oc-status oc-status--success\" id=\"oc-live-state\" data-oc-live>{}<span>Live</span></span>",
@@ -361,19 +282,12 @@ async fn page(
     });
     if let Some(prev) = tq.undo.filter(|u| *u != tq.q) {
         let removed = match query::parse(&prev) {
-            Ok(p) => p
-                .terms
-                .into_iter()
-                .find(|t| !q.terms.contains(t))
-                .map(|t| t.to_string())
-                .unwrap_or_default(),
+            Ok(p) => p.terms.into_iter().find(|t| !q.terms.contains(t)).map(|t| t.to_string()).unwrap_or_default(),
             Err(_) => String::new(),
         };
         let undo = Button::default("Undo").attrs(shell(&timeline_url(id, &prev)));
         p.notices = Html::from(
-            Notice::success(format!("Removed filter {removed}"))
-                .action(undo)
-                .autohide(oc_kit::trash::UNDO_MS),
+            Notice::success(format!("Removed filter {removed}")).action(undo).autohide(oc_kit::trash::UNDO_MS),
         );
     }
     Ok(p.into_response())
@@ -395,13 +309,7 @@ async fn rows(
     };
     let cursor = tq.cursor.as_deref().map(Cursor::decode).transpose()?;
     let page = events::search(&st.pool, id, &q, cursor, PAGE_SIZE).await?;
-    Ok(render(&Rows {
-        case_id: id,
-        events: &page.items,
-        q: q.to_string(),
-        next: page.next_cursor,
-    })
-    .into_response())
+    Ok(render(&Rows { case_id: id, events: &page.items, q: q.to_string(), next: page.next_cursor }).into_response())
 }
 
 async fn facets(
@@ -415,10 +323,5 @@ async fn facets(
         Err(e) => return Ok(bad_query(e)),
     };
     let fac = events::facets(&st.pool, id, &q).await?;
-    Ok(render(&Facets {
-        case_id: id,
-        q: &q,
-        facets: &fac,
-    })
-    .into_response())
+    Ok(render(&Facets { case_id: id, q: &q, facets: &fac }).into_response())
 }

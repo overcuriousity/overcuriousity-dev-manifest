@@ -18,11 +18,7 @@ fn declarations(block: &str) -> Theme {
 
 fn normalise_hex(v: &str) -> String {
     let h = v.trim_start_matches('#').to_ascii_lowercase();
-    if h.len() == 3 {
-        format!("#{}", h.chars().flat_map(|c| [c, c]).collect::<String>())
-    } else {
-        format!("#{h}")
-    }
+    if h.len() == 3 { format!("#{}", h.chars().flat_map(|c| [c, c]).collect::<String>()) } else { format!("#{h}") }
 }
 
 fn block_after<'a>(css: &'a str, selector: &str) -> Option<&'a str> {
@@ -34,9 +30,7 @@ fn block_after<'a>(css: &'a str, selector: &str) -> Option<&'a str> {
 
 /// Light tokens come from the bare `:root` block; dark tokens are light tokens overlaid with the dark block.
 pub fn parse_theme_blocks(css: &str) -> (Theme, Theme) {
-    let light = block_after(css, ":root")
-        .map(declarations)
-        .unwrap_or_default();
+    let light = block_after(css, ":root").map(declarations).unwrap_or_default();
     let mut dark = light.clone();
     if let Some(b) = block_after(css, ":root[data-theme=\"dark\"]") {
         dark.extend(declarations(b));
@@ -45,25 +39,17 @@ pub fn parse_theme_blocks(css: &str) -> (Theme, Theme) {
 }
 
 pub fn dark_blocks(css: &str) -> Vec<Theme> {
-    [
-        ":root:not([data-theme=\"light\"])",
-        ":root[data-theme=\"dark\"]",
-    ]
-    .iter()
-    .filter_map(|s| block_after(css, s).map(declarations))
-    .collect()
+    [":root:not([data-theme=\"light\"])", ":root[data-theme=\"dark\"]"]
+        .iter()
+        .filter_map(|s| block_after(css, s).map(declarations))
+        .collect()
 }
 
 fn luminance(hex: &str) -> f64 {
     let h = hex.trim_start_matches('#');
     let channel = |i: usize| {
-        let c =
-            f64::from(u8::from_str_radix(h.get(i..i + 2).unwrap_or("00"), 16).unwrap_or(0)) / 255.0;
-        if c <= 0.039_28 {
-            c / 12.92
-        } else {
-            ((c + 0.055) / 1.055).powf(2.4)
-        }
+        let c = f64::from(u8::from_str_radix(h.get(i..i + 2).unwrap_or("00"), 16).unwrap_or(0)) / 255.0;
+        if c <= 0.039_28 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
     };
     0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4)
 }

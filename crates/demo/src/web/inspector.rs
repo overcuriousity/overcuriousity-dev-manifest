@@ -48,10 +48,7 @@ impl Inspector<'_> {
                 .vals(format!("{{\"verdict\":\"{value}\"}}"))
                 .target(format!("#verdict-{}", self.e.id))
                 .swap("outerHTML")
-                .with(
-                    "data-oc-optimistic",
-                    format!("#verdict-{0}, #verdict-cell-{0} .oc-verdict", self.e.id),
-                )
+                .with("data-oc-optimistic", format!("#verdict-{0}, #verdict-cell-{0} .oc-verdict", self.e.id))
                 .with("data-oc-optimistic-state", value),
         )
     }
@@ -87,11 +84,7 @@ fn facts(e: &Event) -> Facts {
         Fact::new("Parent", opt(&e.parent)),
     ];
     if e.command_line.is_some() {
-        rows.push(
-            Fact::new("Command line", opt(&e.command_line))
-                .mono()
-                .copy(),
-        );
+        rows.push(Fact::new("Command line", opt(&e.command_line)).mono().copy());
     }
     if e.sha256.is_some() {
         rows.push(Fact::new("SHA-256", opt(&e.sha256)).mono().copy());
@@ -99,37 +92,21 @@ fn facts(e: &Event) -> Facts {
     rows.extend([
         Fact::new("Integrity", opt(&e.integrity)),
         Fact::new("Logon ID", opt(&e.logon_id)).mono().copy(),
-        Fact::new("Source file", e.source_file.clone())
-            .mono()
-            .copy(),
+        Fact::new("Source file", e.source_file.clone()).mono().copy(),
         Fact::new("Record", e.record.to_string()).mono(),
-        Fact::new("Event", format!("#{}", e.id)).mono().copy(),
+        Fact::new("Event", e.id.to_string()).mono().copy(),
     ]);
     Facts { rows }
 }
 
 fn verdict_html(e: &Event, oob: bool) -> Html {
-    render(&Verdict {
-        event_id: e.id,
-        state: e.verdict.clone().unwrap_or_default(),
-        oob,
-    })
+    render(&Verdict { event_id: e.id, state: e.verdict.clone().unwrap_or_default(), oob })
 }
 
-async fn inspector(
-    State(st): State<AppState>,
-    _ctx: Ctx,
-    Path(id): Path<i64>,
-) -> Result<Response, OcError> {
+async fn inspector(State(st): State<AppState>, _ctx: Ctx, Path(id): Path<i64>) -> Result<Response, OcError> {
     let e = events::get(&st.pool, id).await?;
     let notice = e.pinned_at.map(|_| Notice::info("Pinned to the story"));
-    Ok(render(&Inspector {
-        e: &e,
-        verdict: verdict_html(&e, false),
-        facts: facts(&e),
-        notice,
-    })
-    .into_response())
+    Ok(render(&Inspector { e: &e, verdict: verdict_html(&e, false), facts: facts(&e), notice }).into_response())
 }
 
 #[derive(Deserialize)]
@@ -149,10 +126,7 @@ async fn verdict(
     let e = events::get(&st.pool, id).await?;
     let undo = Button::default("Undo").attrs(
         HxAttrs::post(format!("/events/{id}/verdict"))
-            .vals(format!(
-                "{{\"verdict\":\"{}\"}}",
-                previous.unwrap_or_default()
-            ))
+            .vals(format!("{{\"verdict\":\"{}\"}}", previous.unwrap_or_default()))
             .target(format!("#verdict-{id}"))
             .swap("outerHTML"),
     );
@@ -160,10 +134,7 @@ async fn verdict(
         Some(v) => format!("Marked as {v}"),
         None => "Verdict cleared".to_owned(),
     };
-    let notice = Notice::success(text)
-        .action(undo)
-        .autohide(oc_kit::trash::UNDO_MS)
-        .oob();
+    let notice = Notice::success(text).action(undo).autohide(oc_kit::trash::UNDO_MS).oob();
     Ok(Html::join([verdict_html(&e, false), cell(&e), notice]).into_response())
 }
 
@@ -172,20 +143,12 @@ fn cell(e: &Event) -> Html {
     Html(format!(
         "<td class=\"oc-verdict-cell\" id=\"verdict-cell-{}\" hx-swap-oob=\"true\">{}</td>",
         e.id,
-        render(&Verdict {
-            event_id: e.id,
-            state: e.verdict.clone().unwrap_or_default(),
-            oob: true
-        })
+        render(&Verdict { event_id: e.id, state: e.verdict.clone().unwrap_or_default(), oob: true })
     ))
 }
 
 fn current_query(headers: &HeaderMap) -> String {
-    headers
-        .get("hx-current-url")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|u| url_query(u, "q"))
-        .unwrap_or_default()
+    headers.get("hx-current-url").and_then(|v| v.to_str().ok()).and_then(|u| url_query(u, "q")).unwrap_or_default()
 }
 
 fn url_query(url: &str, key: &str) -> Option<String> {
@@ -204,10 +167,7 @@ fn decode(s: &str) -> String {
         match bytes[i] {
             b'+' => out.push(b' '),
             b'%' if i + 2 < bytes.len() => {
-                match u8::from_str_radix(
-                    std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""),
-                    16,
-                ) {
+                match u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or(""), 16) {
                     Ok(b) => {
                         out.push(b);
                         i += 2;
@@ -222,31 +182,14 @@ fn decode(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-async fn set_pin(
-    st: &AppState,
-    headers: &HeaderMap,
-    id: i64,
-    pinned: bool,
-) -> Result<Response, OcError> {
+async fn set_pin(st: &AppState, headers: &HeaderMap, id: i64, pinned: bool) -> Result<Response, OcError> {
     events::set_pinned(&st.pool, id, pinned, now()).await?;
     let e = events::get(&st.pool, id).await?;
-    let q = query::parse(&current_query(headers))
-        .unwrap_or_default()
-        .to_string();
-    let row = render(&Rows {
-        case_id: e.case_id,
-        events: std::slice::from_ref(&e),
-        q,
-        next: None,
-    });
+    let q = query::parse(&current_query(headers)).unwrap_or_default().to_string();
+    let row = render(&Rows { case_id: e.case_id, events: std::slice::from_ref(&e), q, next: None });
     let story = story_html(st, e.case_id, None).await?;
-    Ok(Html::join([
-        row,
-        Html(format!(
-            "<div id=\"pane-body\" class=\"oc-stack\" hx-swap-oob=\"true\">{story}</div>"
-        )),
-    ])
-    .into_response())
+    Ok(Html::join([row, Html(format!("<div id=\"pane-body\" class=\"oc-stack\" hx-swap-oob=\"true\">{story}</div>"))])
+        .into_response())
 }
 
 async fn pin(
@@ -279,11 +222,7 @@ async fn story_html(st: &AppState, case_id: i64, notice: Option<Notice>) -> Resu
     }))
 }
 
-async fn story(
-    State(st): State<AppState>,
-    _ctx: Ctx,
-    Path(id): Path<i64>,
-) -> Result<Response, OcError> {
+async fn story(State(st): State<AppState>, _ctx: Ctx, Path(id): Path<i64>) -> Result<Response, OcError> {
     Ok(story_html(&st, id, None).await?.into_response())
 }
 

@@ -39,12 +39,7 @@ pub async fn get(pool: &SqlitePool, id: i64) -> Result<Case, OcError> {
     .ok_or(OcError::NotFound)
 }
 
-pub async fn create(
-    pool: &SqlitePool,
-    name: &str,
-    summary: &str,
-    now: OffsetDateTime,
-) -> Result<i64, OcError> {
+pub async fn create(pool: &SqlitePool, name: &str, summary: &str, now: OffsetDateTime) -> Result<i64, OcError> {
     Ok(sqlx::query_scalar!(
         "INSERT INTO cases (name, summary, created_at) VALUES (?, ?, ?) RETURNING id",
         name,
@@ -57,13 +52,9 @@ pub async fn create(
 
 pub async fn set_summary(pool: &SqlitePool, id: i64, summary: &str) -> Result<(), OcError> {
     if summary.chars().count() > 4000 {
-        return Err(OcError::Unprocessable(
-            "Keep the summary under 4000 characters.".into(),
-        ));
+        return Err(OcError::Unprocessable("Keep the summary under 4000 characters.".into()));
     }
-    sqlx::query!("UPDATE cases SET summary = ? WHERE id = ?", summary, id)
-        .execute(pool)
-        .await?;
+    sqlx::query!("UPDATE cases SET summary = ? WHERE id = ?", summary, id).execute(pool).await?;
     Ok(())
 }
 
@@ -73,8 +64,6 @@ pub async fn purge(pool: &SqlitePool, id: i64, typed_name: &str) -> Result<(), O
     if typed_name != case.name {
         return Err(OcError::Unprocessable("Type the case name exactly.".into()));
     }
-    sqlx::query!("DELETE FROM cases WHERE id = ?", id)
-        .execute(pool)
-        .await?;
+    sqlx::query!("DELETE FROM cases WHERE id = ?", id).execute(pool).await?;
     Ok(())
 }

@@ -29,19 +29,14 @@ pub enum AuthRejection {
 impl IntoResponse for AuthRejection {
     fn into_response(self) -> Response {
         match self {
-            Self::SignIn { next } => Redirect::to(&format!(
-                "/auth/sign-in?next={}",
-                urlencoding::encode(&next)
-            ))
-            .into_response(),
+            Self::SignIn { next } => {
+                Redirect::to(&format!("/auth/sign-in?next={}", urlencoding::encode(&next))).into_response()
+            }
             Self::Unauthorized { bearer_hint } => {
                 let www = bearer_hint.unwrap_or_else(|| "Bearer".into());
                 (
                     StatusCode::UNAUTHORIZED,
-                    [
-                        (header::WWW_AUTHENTICATE, www),
-                        (header::CONTENT_TYPE, "application/json".into()),
-                    ],
+                    [(header::WWW_AUTHENTICATE, www), (header::CONTENT_TYPE, "application/json".into())],
                     r#"{"error":"Sign in first."}"#,
                 )
                     .into_response()
@@ -53,21 +48,12 @@ impl IntoResponse for AuthRejection {
 }
 
 fn wants_html(parts: &Parts) -> bool {
-    parts
-        .headers
-        .get(header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .is_some_and(|a| a.contains("text/html"))
+    parts.headers.get(header::ACCEPT).and_then(|v| v.to_str().ok()).is_some_and(|a| a.contains("text/html"))
         && !parts.headers.contains_key("hx-request")
 }
 
 fn bearer(parts: &Parts) -> Option<&str> {
-    parts
-        .headers
-        .get(header::AUTHORIZATION)?
-        .to_str()
-        .ok()?
-        .strip_prefix("Bearer ")
+    parts.headers.get(header::AUTHORIZATION)?.to_str().ok()?.strip_prefix("Bearer ")
 }
 
 /// Session first, then `Authorization: Bearer`.
@@ -97,24 +83,15 @@ where
         if let Some(u) = parts.extensions.get::<CurrentUser>() {
             return Ok(u.clone());
         }
-        match resolve_user(parts, &st)
-            .await
-            .map_err(AuthRejection::Error)?
-        {
+        match resolve_user(parts, &st).await.map_err(AuthRejection::Error)? {
             Some(u) => {
                 parts.extensions.insert(CurrentUser(u.clone()));
                 Ok(CurrentUser(u))
             }
             None if wants_html(parts) => Err(AuthRejection::SignIn {
-                next: parts
-                    .uri
-                    .path_and_query()
-                    .map(|p| p.as_str().to_owned())
-                    .unwrap_or_else(|| "/".into()),
+                next: parts.uri.path_and_query().map(|p| p.as_str().to_owned()).unwrap_or_else(|| "/".into()),
             }),
-            None => Err(AuthRejection::Unauthorized {
-                bearer_hint: crate::identity::www_authenticate(&st),
-            }),
+            None => Err(AuthRejection::Unauthorized { bearer_hint: crate::identity::www_authenticate(&st) }),
         }
     }
 }
@@ -128,11 +105,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let st = AuthState::from_ref(state);
-        Ok(MaybeUser(
-            resolve_user(parts, &st)
-                .await
-                .map_err(AuthRejection::Error)?,
-        ))
+        Ok(MaybeUser(resolve_user(parts, &st).await.map_err(AuthRejection::Error)?))
     }
 }
 
@@ -145,10 +118,6 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let CurrentUser(u) = CurrentUser::from_request_parts(parts, state).await?;
-        if u.is_admin {
-            Ok(AdminUser(u))
-        } else {
-            Err(AuthRejection::Forbidden)
-        }
+        if u.is_admin { Ok(AdminUser(u)) } else { Err(AuthRejection::Forbidden) }
     }
 }

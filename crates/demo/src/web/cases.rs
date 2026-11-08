@@ -13,9 +13,7 @@ use crate::domain::cases::{self, Case};
 use crate::state::AppState;
 
 pub fn routes() -> Router<AppState> {
-    Router::new()
-        .route("/cases", get(index))
-        .route("/cases/{id}/purge", post(purge))
+    Router::new().route("/cases", get(index)).route("/cases/{id}/purge", post(purge))
 }
 
 #[derive(Template)]
@@ -26,7 +24,7 @@ struct CaseList {
 }
 
 impl CaseList {
-    fn confirm(&self, c: &Case) -> TypedConfirm {
+    fn purge_dialog(&self, c: &Case) -> TypedConfirm {
         TypedConfirm {
             id: format!("purge-{}", c.id),
             title: "Purge case".into(),
@@ -64,9 +62,7 @@ async fn purge(
             h.insert("hx-redirect", HeaderValue::from_static("/cases"));
             Ok((h, StatusCode::OK).into_response())
         }
-        Err(e @ OcError::Unprocessable(_)) => {
-            Ok((StatusCode::UNPROCESSABLE_ENTITY, e.to_string()).into_response())
-        }
+        Err(e @ OcError::Unprocessable(_)) => Ok((StatusCode::UNPROCESSABLE_ENTITY, e.to_string()).into_response()),
         Err(e) => Err(e),
     }
 }

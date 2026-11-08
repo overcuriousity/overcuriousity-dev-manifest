@@ -27,10 +27,7 @@ impl Default for OcConfig {
         Self {
             public_url: None,
             bind: SocketAddr::from(([127, 0, 0, 1], 8080)),
-            trusted_proxies: ["127.0.0.1/32", "::1/128"]
-                .iter()
-                .filter_map(|s| s.parse().ok())
-                .collect(),
+            trusted_proxies: ["127.0.0.1/32", "::1/128"].iter().filter_map(|s| s.parse().ok()).collect(),
             data_dir: None,
             auth: AuthConfig::default(),
             app: None,
@@ -48,11 +45,7 @@ pub struct AuthConfig {
 
 impl Default for AuthConfig {
     fn default() -> Self {
-        Self {
-            local: true,
-            passkeys: true,
-            oidc: None,
-        }
+        Self { local: true, passkeys: true, oidc: None }
     }
 }
 
@@ -103,9 +96,7 @@ impl<'de> Deserialize<'de> for Secret {
         match raw.strip_prefix("file://") {
             Some(path) => std::fs::read_to_string(path)
                 .map(|s| Secret(s.trim_end_matches(['\n', '\r']).to_owned()))
-                .map_err(|e| {
-                    serde::de::Error::custom(format!("Cannot read secret file {path}: {e}."))
-                }),
+                .map_err(|e| serde::de::Error::custom(format!("Cannot read secret file {path}: {e}."))),
             None => Ok(Secret(raw)),
         }
     }
@@ -118,18 +109,11 @@ pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, Oc
     let mut fig = Figment::new();
     if let Some(path) = file {
         if !path.exists() {
-            return Err(OcError::Config(format!(
-                "Config file {} does not exist.",
-                path.display()
-            )));
+            return Err(OcError::Config(format!("Config file {} does not exist.", path.display())));
         }
         fig = fig.merge(Toml::file(path));
     }
-    fig = fig.merge(
-        Env::prefixed(&prefix)
-            .split("__")
-            .filter(|k| !k.as_str().to_ascii_lowercase().ends_with("_file")),
-    );
+    fig = fig.merge(Env::prefixed(&prefix).split("__").filter(|k| !k.as_str().to_ascii_lowercase().ends_with("_file")));
     for (key, value) in std::env::vars() {
         let Some(rest) = key.strip_prefix(&prefix) else {
             continue;
@@ -140,8 +124,7 @@ pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, Oc
         let path = name.to_ascii_lowercase().replace("__", ".");
         fig = fig.merge((path, format!("file://{value}")));
     }
-    fig.extract()
-        .map_err(|e| OcError::Config(format!("Invalid configuration: {e}.")))
+    fig.extract().map_err(|e| OcError::Config(format!("Invalid configuration: {e}.")))
 }
 
 #[derive(Debug, Clone)]
@@ -172,9 +155,7 @@ impl Deployment {
 
     pub fn origin_allowed(&self, origin: &str) -> bool {
         if self.loopback_dev {
-            return LOOPBACK_NAMES
-                .iter()
-                .any(|n| origin == format!("http://{n}:{}", self.port));
+            return LOOPBACK_NAMES.iter().any(|n| origin == format!("http://{n}:{}", self.port));
         }
         origin == self.origin
     }
@@ -183,9 +164,7 @@ impl Deployment {
 impl OcConfig {
     pub fn app<T: DeserializeOwned + Default>(&self) -> Result<T, OcError> {
         match &self.app {
-            Some(v) => v
-                .deserialize()
-                .map_err(|e| OcError::Config(format!("Invalid [app] configuration: {e}."))),
+            Some(v) => v.deserialize().map_err(|e| OcError::Config(format!("Invalid [app] configuration: {e}."))),
             None => Ok(T::default()),
         }
     }
@@ -210,9 +189,7 @@ impl OcConfig {
         let loopback_bind = self.bind.ip().is_loopback();
         let Some(url) = &self.public_url else {
             if !loopback_bind {
-                return Err(OcError::Config(
-                    "Set public_url when binding to a non-loopback address.".into(),
-                ));
+                return Err(OcError::Config("Set public_url when binding to a non-loopback address.".into()));
             }
             let origin = format!("http://localhost:{}", self.bind.port());
             return Ok(Deployment {
@@ -225,16 +202,13 @@ impl OcConfig {
             });
         };
         let host = url.host_str().unwrap_or_default().to_owned();
-        let is_loopback_host = host == "localhost"
-            || host.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback())
-            || host == "[::1]";
+        let is_loopback_host =
+            host == "localhost" || host.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback()) || host == "[::1]";
         match url.scheme() {
             "https" => {}
             "http" if is_loopback_host => {}
             _ => {
-                return Err(OcError::Config(
-                    "public_url must be https unless it is localhost.".into(),
-                ));
+                return Err(OcError::Config("public_url must be https unless it is localhost.".into()));
             }
         }
         Ok(Deployment {

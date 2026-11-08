@@ -28,14 +28,7 @@ async fn mint(
     CurrentUser(u): CurrentUser,
     Form(f): Form<NewToken>,
 ) -> Result<Response, OcError> {
-    let (info, token) = tokens::mint(
-        &st.pool,
-        u.id,
-        &f.name,
-        st.token_prefix,
-        OffsetDateTime::now_utc(),
-    )
-    .await?;
+    let (info, token) = tokens::mint(&st.pool, u.id, &f.name, st.token_prefix, OffsetDateTime::now_utc()).await?;
     Ok(super::fragments::token_minted(&info, &token))
 }
 

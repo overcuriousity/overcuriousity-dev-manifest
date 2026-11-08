@@ -35,13 +35,7 @@ impl IntoResponse for ApiError {
         if let OcError::Internal(detail) = &self.0 {
             tracing::error!(%detail, "API error");
         }
-        (
-            self.0.status(),
-            Json(ErrorBody {
-                error: self.0.to_string(),
-            }),
-        )
-            .into_response()
+        (self.0.status(), Json(ErrorBody { error: self.0.to_string() })).into_response()
     }
 }
 
@@ -63,24 +57,12 @@ pub fn router() -> axum::Router<AppState> {
         .routes(routes!(get_note, update_note, delete_note))
         .split_for_parts();
     let mut spec = spec;
-    spec.paths.paths = spec
-        .paths
-        .paths
-        .into_iter()
-        .map(|(k, v)| (format!("/api/v1{k}"), v))
-        .collect();
+    spec.paths.paths = spec.paths.paths.into_iter().map(|(k, v)| (format!("/api/v1{k}"), v)).collect();
     let json = serde_json::to_string(&spec).unwrap_or_default();
-    axum::Router::new()
-        .nest(
-            "/api/v1",
-            router.layer(oc_kit::security::rate_limit(600, 100)),
-        )
-        .route(
-            "/api/v1/openapi.json",
-            axum::routing::get(
-                move || async move { ([("content-type", "application/json")], json) },
-            ),
-        )
+    axum::Router::new().nest("/api/v1", router.layer(oc_kit::security::rate_limit(600, 100))).route(
+        "/api/v1/openapi.json",
+        axum::routing::get(move || async move { ([("content-type", "application/json")], json) }),
+    )
 }
 
 /// List cases.
@@ -118,30 +100,14 @@ async fn list_events(
 ) -> ApiResult<EventPage> {
     cases::get(&st.pool, id).await?;
     let q = query::parse(&eq.q).map_err(|e| OcError::BadRequest(e.to_string()))?;
-    let cursor = (!eq.cursor.is_empty())
-        .then(|| Cursor::decode(&eq.cursor))
-        .transpose()?;
-    let page = events::search(
-        &st.pool,
-        id,
-        &q,
-        cursor,
-        eq.limit.unwrap_or(100).clamp(1, 500),
-    )
-    .await?;
-    Ok(Json(EventPage {
-        items: page.items,
-        next_cursor: page.next_cursor,
-    }))
+    let cursor = (!eq.cursor.is_empty()).then(|| Cursor::decode(&eq.cursor)).transpose()?;
+    let page = events::search(&st.pool, id, &q, cursor, eq.limit.unwrap_or(100).clamp(1, 500)).await?;
+    Ok(Json(EventPage { items: page.items, next_cursor: page.next_cursor }))
 }
 
 /// Get one event.
 #[utoipa::path(get, path = "/events/{id}", params(("id" = i64, Path)), responses((status = 200, body = Event), (status = 404, body = ErrorBody)))]
-async fn get_event(
-    State(st): State<AppState>,
-    _u: CurrentUser,
-    Path(id): Path<i64>,
-) -> ApiResult<Event> {
+async fn get_event(State(st): State<AppState>, _u: CurrentUser, Path(id): Path<i64>) -> ApiResult<Event> {
     Ok(Json(events::get(&st.pool, id).await?))
 }
 
@@ -152,11 +118,7 @@ struct NotesQuery {
 
 /// List notes, optionally for one case.
 #[utoipa::path(get, path = "/notes", params(NotesQuery), responses((status = 200, body = Vec<Note>)))]
-async fn list_notes(
-    State(st): State<AppState>,
-    _u: CurrentUser,
-    Query(nq): Query<NotesQuery>,
-) -> ApiResult<Vec<Note>> {
+async fn list_notes(State(st): State<AppState>, _u: CurrentUser, Query(nq): Query<NotesQuery>) -> ApiResult<Vec<Note>> {
     Ok(Json(notes::list(&st.pool, nq.case_id, "", false).await?))
 }
 
@@ -194,11 +156,7 @@ async fn create_note(
 
 /// Get one note.
 #[utoipa::path(get, path = "/notes/{id}", params(("id" = i64, Path)), responses((status = 200, body = Note), (status = 404, body = ErrorBody)))]
-async fn get_note(
-    State(st): State<AppState>,
-    _u: CurrentUser,
-    Path(id): Path<i64>,
-) -> ApiResult<Note> {
+async fn get_note(State(st): State<AppState>, _u: CurrentUser, Path(id): Path<i64>) -> ApiResult<Note> {
     let n = notes::get(&st.pool, id).await?;
     if n.deleted_at.is_some() {
         return Err(OcError::NotFound.into());
@@ -220,11 +178,7 @@ async fn update_note(
 
 /// Move a note to Trash; it can be restored for 30 days.
 #[utoipa::path(delete, path = "/notes/{id}", params(("id" = i64, Path)), responses((status = 204)))]
-async fn delete_note(
-    State(st): State<AppState>,
-    _u: CurrentUser,
-    Path(id): Path<i64>,
-) -> Result<StatusCode, ApiError> {
+async fn delete_note(State(st): State<AppState>, _u: CurrentUser, Path(id): Path<i64>) -> Result<StatusCode, ApiError> {
     NotesStore(st.pool.clone()).soft_delete(id, now()).await?;
     Ok(StatusCode::NO_CONTENT)
 }

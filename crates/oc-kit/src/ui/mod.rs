@@ -96,11 +96,7 @@ impl HxAttrs {
 impl fmt::Display for HxAttrs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (k, v) in &self.0 {
-            write!(
-                f,
-                " {k}=\"{}\"",
-                askama::filters::escape(v, askama::filters::Html).map_err(|_| fmt::Error)?
-            )?;
+            write!(f, " {k}=\"{}\"", askama::filters::escape(v, askama::filters::Html).map_err(|_| fmt::Error)?)?;
         }
         Ok(())
     }

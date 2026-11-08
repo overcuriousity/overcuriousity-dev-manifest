@@ -7,22 +7,11 @@ use axum::http::{StatusCode, header};
 use support::*;
 
 async fn token(a: &App) -> String {
-    let u = oc_kit::identity::users::by_username(&a.st.pool, "ana")
-        .await
-        .unwrap()
-        .unwrap();
-    oc_kit::identity::tokens::mint(&a.st.pool, u.id, "mcp", "demo", demo::domain::now())
-        .await
-        .unwrap()
-        .1
+    let u = oc_kit::identity::users::by_username(&a.st.pool, "ana").await.unwrap().unwrap();
+    oc_kit::identity::tokens::mint(&a.st.pool, u.id, "mcp", "demo", demo::domain::now()).await.unwrap().1
 }
 
-async fn rpc(
-    a: &App,
-    token: Option<&str>,
-    session: Option<&str>,
-    body: &str,
-) -> axum::response::Response {
+async fn rpc(a: &App, token: Option<&str>, session: Option<&str>, body: &str) -> axum::response::Response {
     let mut r = axum::http::Request::post("/mcp")
         .header(header::HOST, "localhost:8080")
         .header(header::CONTENT_TYPE, "application/json")
@@ -31,9 +20,7 @@ async fn rpc(
         r = r.header(header::AUTHORIZATION, format!("Bearer {t}"));
     }
     if let Some(s) = session {
-        r = r
-            .header("mcp-session-id", s)
-            .header("mcp-protocol-version", "2025-06-18");
+        r = r.header("mcp-session-id", s).header("mcp-protocol-version", "2025-06-18");
     }
     a.send(r.body(Body::from(body.to_owned())).unwrap()).await
 }
@@ -62,13 +49,7 @@ async fn session(a: &App, t: &str) -> String {
     assert_eq!(res.status(), StatusCode::OK);
     let sid = res.headers()["mcp-session-id"].to_str().unwrap().to_owned();
     let _ = text(res).await;
-    rpc(
-        a,
-        Some(t),
-        Some(&sid),
-        r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
-    )
-    .await;
+    rpc(a, Some(t), Some(&sid), r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#).await;
     sid
 }
 
@@ -85,21 +66,9 @@ async fn tools_list_names_the_four_tools_and_search_matches_the_api() {
     let a = app().await;
     let t = token(&a).await;
     let sid = session(&a, &t).await;
-    let list = text(
-        rpc(
-            &a,
-            Some(&t),
-            Some(&sid),
-            r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#,
-        )
-        .await,
-    )
-    .await;
+    let list = text(rpc(&a, Some(&t), Some(&sid), r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#).await).await;
     for name in ["list_cases", "search_events", "get_event", "add_note"] {
-        assert!(
-            list.contains(&format!("\"name\":\"{name}\"")),
-            "{name} missing: {list}"
-        );
+        assert!(list.contains(&format!("\"name\":\"{name}\"")), "{name} missing: {list}");
     }
     let case = demo::domain::cases::list(&a.st.pool).await.unwrap()[0].id;
     let call = format!(
@@ -107,11 +76,7 @@ async fn tools_list_names_the_four_tools_and_search_matches_the_api() {
     );
     let out = text(rpc(&a, Some(&t), Some(&sid), &call).await).await;
     let q = demo::domain::query::parse("event_id:4688").unwrap();
-    let first = demo::domain::events::search(&a.st.pool, case, &q, None, 5)
-        .await
-        .unwrap()
-        .items[0]
-        .id;
+    let first = demo::domain::events::search(&a.st.pool, case, &q, None, 5).await.unwrap().items[0].id;
     assert!(out.contains(&format!("\\\"id\\\":{first}")), "{out}");
 }
 

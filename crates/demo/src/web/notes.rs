@@ -29,11 +29,7 @@ pub fn routes() -> Router<AppState> {
 
 /// Swaps the whole shell, so a button can move to another view without a full reload.
 pub fn shell_get(url: &str) -> HxAttrs {
-    HxAttrs::get(url)
-        .target("#oc-shell")
-        .swap("outerHTML")
-        .with("hx-select", "#oc-shell")
-        .with("hx-push-url", "true")
+    HxAttrs::get(url).target("#oc-shell").swap("outerHTML").with("hx-select", "#oc-shell").with("hx-push-url", "true")
 }
 
 #[derive(Template)]
@@ -128,19 +124,13 @@ fn search_box(q: &str) -> SearchBox {
             .target("#oc-note-list")
             .swap("outerHTML")
             .with("hx-select", "#oc-note-list")
-            .with(
-                "hx-trigger",
-                "input changed delay:250ms from:find input, search",
-            )
+            .with("hx-trigger", "input changed delay:250ms from:find input, search")
             .with("hx-push-url", "true"),
     }
 }
 
 fn new_button() -> Button {
-    Button::primary("New note")
-        .icon(Icon::New)
-        .class("oc-fab")
-        .attrs(shell_get("/notes/new"))
+    Button::primary("New note").icon(Icon::New).class("oc-fab").attrs(shell_get("/notes/new"))
 }
 
 async fn page(
@@ -165,15 +155,10 @@ async fn page_with(
     offer_new: bool,
 ) -> Result<oc_kit::ui::Page, OcError> {
     let all = notes::list(&st.pool, None, filter, false).await?;
-    let list = render(&NoteList {
-        notes: &all,
-        current: current.map(|n| n.id),
-    });
+    let list = render(&NoteList { notes: &all, current: current.map(|n| n.id) });
     let related = current.and_then(|n| {
-        let rel: Vec<&Note> = all
-            .iter()
-            .filter(|o| o.id != n.id && o.case_id.is_some() && o.case_id == n.case_id)
-            .collect();
+        let rel: Vec<&Note> =
+            all.iter().filter(|o| o.id != n.id && o.case_id.is_some() && o.case_id == n.case_id).collect();
         (!rel.is_empty()).then(|| render(&Related { notes: rel }))
     });
     let body = render(&NotesPage {
@@ -192,14 +177,8 @@ fn empty_detail() -> Html {
     Html::from(Empty::new("Select a note to read it, or start a new one."))
 }
 
-async fn index(
-    State(st): State<AppState>,
-    ctx: Ctx,
-    Query(q): Query<ListQuery>,
-) -> Result<Response, OcError> {
-    Ok(page(&st, &ctx, &q.q, None, empty_detail(), "list")
-        .await?
-        .into_response())
+async fn index(State(st): State<AppState>, ctx: Ctx, Query(q): Query<ListQuery>) -> Result<Response, OcError> {
+    Ok(page(&st, &ctx, &q.q, None, empty_detail(), "list").await?.into_response())
 }
 
 fn detail(note: &Note, origin: &str) -> Html {
@@ -213,12 +192,7 @@ fn detail(note: &Note, origin: &str) -> Html {
         facts.push(Fact::new("Case", name.clone()).href(format!("/cases/{id}/timeline")));
     }
     let url = format!("{origin}/notes/{}", note.id);
-    facts.push(
-        Fact::new("Link", url.clone())
-            .mono()
-            .copy()
-            .href(format!("/notes/{}", note.id)),
-    );
+    facts.push(Fact::new("Link", url.clone()).mono().copy().href(format!("/notes/{}", note.id)));
     let delete = Button::danger("Delete").icon(Icon::Delete).attrs(
         HxAttrs::post(format!("/notes/{}/delete", note.id))
             .target("#oc-shell")
@@ -231,26 +205,18 @@ fn detail(note: &Note, origin: &str) -> Html {
         note,
         paras: paragraphs(&note.body),
         facts: Facts { rows: facts },
-        edit: Button::default("Edit")
-            .icon(Icon::Edit)
-            .attrs(shell_get(&format!("/notes/{}/edit", note.id))),
+        edit: Button::default("Edit").icon(Icon::Edit).attrs(shell_get(&format!("/notes/{}/edit", note.id))),
         delete,
     })
 }
 
-async fn show(
-    State(st): State<AppState>,
-    ctx: Ctx,
-    Path(id): Path<i64>,
-) -> Result<Response, OcError> {
+async fn show(State(st): State<AppState>, ctx: Ctx, Path(id): Path<i64>) -> Result<Response, OcError> {
     let note = notes::get(&st.pool, id).await?;
     if note.deleted_at.is_some() {
         return Err(OcError::NotFound);
     }
     let d = detail(&note, &st.auth.dep.origin);
-    Ok(page(&st, &ctx, "", Some(&note), d, "detail")
-        .await?
-        .into_response())
+    Ok(page(&st, &ctx, "", Some(&note), d, "detail").await?.into_response())
 }
 
 #[derive(Deserialize)]
@@ -277,12 +243,7 @@ impl NoteFormData {
 
 async fn case_select(st: &AppState, selected: Option<i64>) -> Result<Select, OcError> {
     let mut options = vec![(String::new(), "No case".to_owned())];
-    options.extend(
-        cases::list(&st.pool)
-            .await?
-            .into_iter()
-            .map(|c| (c.id.to_string(), c.name)),
-    );
+    options.extend(cases::list(&st.pool).await?.into_iter().map(|c| (c.id.to_string(), c.name)));
     Ok(Select {
         name: "case_id".into(),
         label: "Case".into(),
@@ -310,11 +271,7 @@ async fn new_form(State(st): State<AppState>, ctx: Ctx) -> Result<Response, OcEr
     Ok(form_page(&st, &ctx, form).await?.into_response())
 }
 
-async fn edit_form(
-    State(st): State<AppState>,
-    ctx: Ctx,
-    Path(id): Path<i64>,
-) -> Result<Response, OcError> {
+async fn edit_form(State(st): State<AppState>, ctx: Ctx, Path(id): Path<i64>) -> Result<Response, OcError> {
     let n = notes::get(&st.pool, id).await?;
     let form = NoteForm {
         action: format!("/notes/{id}"),
@@ -347,23 +304,13 @@ async fn rejected(
         notice: Some(Notice::danger(e.to_string())),
         cancel,
     };
-    Ok((
-        StatusCode::UNPROCESSABLE_ENTITY,
-        form_page(st, ctx, form).await?,
-    )
-        .into_response())
+    Ok((StatusCode::UNPROCESSABLE_ENTITY, form_page(st, ctx, form).await?).into_response())
 }
 
-async fn create(
-    State(st): State<AppState>,
-    ctx: Ctx,
-    Form(f): Form<NoteFormData>,
-) -> Result<Response, OcError> {
+async fn create(State(st): State<AppState>, ctx: Ctx, Form(f): Form<NoteFormData>) -> Result<Response, OcError> {
     match notes::create(&st.pool, ctx.user.id, &f.input(), now()).await {
         Ok(id) => Ok(Redirect::to(&format!("/notes/{id}")).into_response()),
-        Err(e @ OcError::Unprocessable(_)) => {
-            rejected(&st, &ctx, &f, "/notes".into(), "/notes".into(), e).await
-        }
+        Err(e @ OcError::Unprocessable(_)) => rejected(&st, &ctx, &f, "/notes".into(), "/notes".into(), e).await,
         Err(e) => Err(e),
     }
 }
@@ -377,64 +324,36 @@ async fn update(
     match notes::update(&st.pool, id, &f.input(), now()).await {
         Ok(()) => Ok(Redirect::to(&format!("/notes/{id}")).into_response()),
         Err(e @ OcError::Unprocessable(_)) => {
-            rejected(
-                &st,
-                &ctx,
-                &f,
-                format!("/notes/{id}"),
-                format!("/notes/{id}"),
-                e,
-            )
-            .await
+            rejected(&st, &ctx, &f, format!("/notes/{id}"), format!("/notes/{id}"), e).await
         }
         Err(e) => Err(e),
     }
 }
 
-async fn delete(
-    State(st): State<AppState>,
-    ctx: Ctx,
-    Path(id): Path<i64>,
-) -> Result<Response, OcError> {
+async fn delete(State(st): State<AppState>, ctx: Ctx, Path(id): Path<i64>) -> Result<Response, OcError> {
     let note = notes::get(&st.pool, id).await?;
     NotesStore(st.pool.clone()).soft_delete(id, now()).await?;
-    let notice = undo_notice(
-        &format!("Deleted '{}'", note.title),
-        HxAttrs::post(format!("/notes/{id}/restore")),
-    );
+    let notice = undo_notice(&format!("Deleted '{}'", note.title), HxAttrs::post(format!("/notes/{id}/restore")));
     let mut p = page(&st, &ctx, "", None, empty_detail(), "list").await?;
     p.notices = Html::from(notice);
     Ok(p.into_response())
 }
 
-async fn restore(
-    State(st): State<AppState>,
-    _ctx: Ctx,
-    Path(id): Path<i64>,
-) -> Result<Response, OcError> {
+async fn restore(State(st): State<AppState>, _ctx: Ctx, Path(id): Path<i64>) -> Result<Response, OcError> {
     NotesStore(st.pool.clone()).restore(id).await?;
     let mut h = HeaderMap::new();
-    h.insert(
-        "hx-redirect",
-        HeaderValue::from_str(&format!("/notes/{id}")).map_err(OcError::internal)?,
-    );
+    h.insert("hx-redirect", HeaderValue::from_str(&format!("/notes/{id}")).map_err(OcError::internal)?);
     Ok((h, StatusCode::OK).into_response())
 }
 
 async fn trash(State(st): State<AppState>, ctx: Ctx) -> Result<Response, OcError> {
     let deleted = notes::list(&st.pool, None, "", true).await?;
-    let body = render(&Trash {
-        notes: &deleted,
-        empty: Empty::new("Trash is empty. Deleted notes stay here for 30 days."),
-    });
+    let body =
+        render(&Trash { notes: &deleted, empty: Empty::new("Trash is empty. Deleted notes stay here for 30 days.") });
     Ok(everyday(&ctx, "/notes", "Trash", body).into_response())
 }
 
-async fn search(
-    State(st): State<AppState>,
-    ctx: Ctx,
-    Query(q): Query<ListQuery>,
-) -> Result<Response, OcError> {
+async fn search(State(st): State<AppState>, ctx: Ctx, Query(q): Query<ListQuery>) -> Result<Response, OcError> {
     let term = q.q.trim();
     let (found, matching) = if term.is_empty() {
         (Vec::new(), Vec::new())
@@ -443,10 +362,7 @@ async fn search(
         let all_cases = cases::list(&st.pool).await?;
         (
             notes::list(&st.pool, None, term, false).await?,
-            all_cases
-                .into_iter()
-                .filter(|c| c.name.to_lowercase().contains(&lower))
-                .collect(),
+            all_cases.into_iter().filter(|c| c.name.to_lowercase().contains(&lower)).collect(),
         )
     };
     let search = SearchBox {
@@ -457,17 +373,9 @@ async fn search(
             .target("#oc-search-results")
             .swap("outerHTML")
             .with("hx-select", "#oc-search-results")
-            .with(
-                "hx-trigger",
-                "input changed delay:250ms from:find input, search",
-            )
+            .with("hx-trigger", "input changed delay:250ms from:find input, search")
             .with("hx-push-url", "true"),
     };
-    let body = render(&SearchPage {
-        search,
-        q: term,
-        notes: found,
-        cases: matching,
-    });
+    let body = render(&SearchPage { search, q: term, notes: found, cases: matching });
     Ok(everyday(&ctx, "/search", "Search", body).into_response())
 }

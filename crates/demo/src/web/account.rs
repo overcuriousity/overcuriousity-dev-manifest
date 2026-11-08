@@ -26,21 +26,14 @@ struct Account {
 }
 
 fn options(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
-    pairs
-        .iter()
-        .map(|(v, t)| ((*v).to_owned(), (*t).to_owned()))
-        .collect()
+    pairs.iter().map(|(v, t)| ((*v).to_owned(), (*t).to_owned())).collect()
 }
 
 async fn account(State(st): State<AppState>, ctx: Ctx) -> Result<Response, OcError> {
     let theme = Select {
         name: "theme".into(),
         label: "Theme".into(),
-        options: options(&[
-            ("system", "Follow the system"),
-            ("light", "Light"),
-            ("dark", "Dark"),
-        ]),
+        options: options(&[("system", "Follow the system"), ("light", "Light"), ("dark", "Dark")]),
         selected: ctx.prefs.theme.as_str().into(),
         attrs: HxAttrs::new().with("data-oc-pref-select", "theme"),
     };
@@ -58,17 +51,8 @@ async fn account(State(st): State<AppState>, ctx: Ctx) -> Result<Response, OcErr
     let who = Facts {
         rows: vec![
             Fact::new("Name", ctx.user.display_name.clone()),
-            Fact::new("Username", ctx.user.username.clone())
-                .mono()
-                .copy(),
-            Fact::new(
-                "Role",
-                if ctx.user.is_admin {
-                    "Admin"
-                } else {
-                    "Analyst"
-                },
-            ),
+            Fact::new("Username", ctx.user.username.clone()).mono().copy(),
+            Fact::new("Role", if ctx.user.is_admin { "Admin" } else { "Analyst" }),
         ],
     };
     let body = render(&Account {
@@ -76,9 +60,7 @@ async fn account(State(st): State<AppState>, ctx: Ctx) -> Result<Response, OcErr
         theme,
         density,
         passkeys,
-        tokens: TokenList {
-            tokens: tokens::list(&st.pool, ctx.user.id).await?,
-        },
+        tokens: TokenList { tokens: tokens::list(&st.pool, ctx.user.id).await? },
     });
     Ok(everyday(&ctx, "/account", "Account", body).into_response())
 }

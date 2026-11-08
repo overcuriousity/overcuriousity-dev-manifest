@@ -25,10 +25,7 @@ pub async fn connect(data_dir: &Path, file: &str) -> Result<SqlitePool, OcError>
         .journal_mode(SqliteJournalMode::Wal)
         .foreign_keys(true)
         .busy_timeout(Duration::from_secs(5));
-    Ok(SqlitePoolOptions::new()
-        .max_connections(8)
-        .connect_with(opts)
-        .await?)
+    Ok(SqlitePoolOptions::new().max_connections(8).connect_with(opts).await?)
 }
 
 fn create_private_dir(dir: &Path) -> Result<(), OcError> {
@@ -40,12 +37,7 @@ fn create_private_dir(dir: &Path) -> Result<(), OcError> {
         .recursive(true)
         .mode(0o700)
         .create(dir)
-        .map_err(|e| {
-            OcError::Config(format!(
-                "Cannot create data directory {}: {e}.",
-                dir.display()
-            ))
-        })
+        .map_err(|e| OcError::Config(format!("Cannot create data directory {}: {e}.", dir.display())))
 }
 
 /// Kit and app migrations share `_sqlx_migrations`; each migrator must ignore the other's versions.

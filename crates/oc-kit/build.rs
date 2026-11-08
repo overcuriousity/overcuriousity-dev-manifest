@@ -6,11 +6,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter_map(Result::ok)
         .map(|e| e.path())
         .filter(|p| {
-            p.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
-                n.len() > 3
-                    && n.as_bytes()[..2].iter().all(u8::is_ascii_digit)
-                    && n.ends_with(".css")
-            })
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.len() > 3 && n.as_bytes()[..2].iter().all(u8::is_ascii_digit) && n.ends_with(".css"))
         })
         .collect();
     layers.sort();

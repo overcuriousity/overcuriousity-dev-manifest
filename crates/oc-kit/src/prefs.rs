@@ -95,12 +95,9 @@ use crate::error::OcError;
 use crate::identity::extract::{CurrentUser, resolve_user};
 
 pub async fn load(pool: &SqlitePool, user_id: i64) -> Result<Prefs, OcError> {
-    let row = sqlx::query!(
-        "SELECT theme, density FROM oc_preferences WHERE user_id = ?",
-        user_id
-    )
-    .fetch_optional(pool)
-    .await?;
+    let row = sqlx::query!("SELECT theme, density FROM oc_preferences WHERE user_id = ?", user_id)
+        .fetch_optional(pool)
+        .await?;
     Ok(row
         .map(|r| Prefs {
             theme: Theme::parse(&r.theme).unwrap_or_default(),
@@ -141,12 +138,10 @@ async fn update(
 ) -> Result<StatusCode, OcError> {
     let mut p = load(&st.pool, u.id).await?;
     if let Some(t) = f.theme {
-        p.theme =
-            Theme::parse(&t).ok_or_else(|| OcError::Unprocessable("Unknown theme.".into()))?;
+        p.theme = Theme::parse(&t).ok_or_else(|| OcError::Unprocessable("Unknown theme.".into()))?;
     }
     if let Some(d) = f.density {
-        p.density =
-            Density::parse(&d).ok_or_else(|| OcError::Unprocessable("Unknown density.".into()))?;
+        p.density = Density::parse(&d).ok_or_else(|| OcError::Unprocessable("Unknown density.".into()))?;
     }
     save(&st.pool, u.id, p).await?;
     Ok(StatusCode::NO_CONTENT)

@@ -34,25 +34,18 @@ impl NoteInput {
             return Err(OcError::Unprocessable("Give the note a title.".into()));
         }
         if title.chars().count() > 200 {
-            return Err(OcError::Unprocessable(
-                "Keep the title under 200 characters.".into(),
-            ));
+            return Err(OcError::Unprocessable("Keep the title under 200 characters.".into()));
         }
         if self.body.chars().count() > 20_000 {
-            return Err(OcError::Unprocessable(
-                "Keep the note under 20000 characters.".into(),
-            ));
+            return Err(OcError::Unprocessable("Keep the note under 20000 characters.".into()));
         }
         Ok(())
     }
 }
 
 pub fn parse_tags(s: &str) -> Vec<String> {
-    let mut tags: Vec<String> = s
-        .split(',')
-        .map(|t| t.trim().to_lowercase())
-        .filter(|t| !t.is_empty() && t.chars().count() <= 40)
-        .collect();
+    let mut tags: Vec<String> =
+        s.split(',').map(|t| t.trim().to_lowercase()).filter(|t| !t.is_empty() && t.chars().count() <= 40).collect();
     tags.sort();
     tags.dedup();
     tags.truncate(12);
@@ -72,12 +65,7 @@ struct Row {
 }
 
 async fn tags_of(pool: &SqlitePool, id: i64) -> Result<Vec<String>, OcError> {
-    Ok(sqlx::query_scalar!(
-        "SELECT tag FROM note_tags WHERE note_id = ? ORDER BY tag",
-        id
-    )
-    .fetch_all(pool)
-    .await?)
+    Ok(sqlx::query_scalar!("SELECT tag FROM note_tags WHERE note_id = ? ORDER BY tag", id).fetch_all(pool).await?)
 }
 
 async fn hydrate(pool: &SqlitePool, rows: Vec<Row>) -> Result<Vec<Note>, OcError> {
@@ -101,12 +89,7 @@ async fn hydrate(pool: &SqlitePool, rows: Vec<Row>) -> Result<Vec<Note>, OcError
 }
 
 /// `filter` matches the title, case-insensitively.
-pub async fn list(
-    pool: &SqlitePool,
-    case_id: Option<i64>,
-    filter: &str,
-    deleted: bool,
-) -> Result<Vec<Note>, OcError> {
+pub async fn list(pool: &SqlitePool, case_id: Option<i64>, filter: &str, deleted: bool) -> Result<Vec<Note>, OcError> {
     let rows = sqlx::query_as!(
         Row,
         r#"SELECT n.id AS "id!", n.case_id, c.name AS "case_name?", u.display_name AS author, n.title, n.body,
@@ -142,27 +125,14 @@ pub async fn get(pool: &SqlitePool, id: i64) -> Result<Note, OcError> {
 }
 
 async fn set_tags(pool: &SqlitePool, id: i64, tags: &[String]) -> Result<(), OcError> {
-    sqlx::query!("DELETE FROM note_tags WHERE note_id = ?", id)
-        .execute(pool)
-        .await?;
+    sqlx::query!("DELETE FROM note_tags WHERE note_id = ?", id).execute(pool).await?;
     for t in tags {
-        sqlx::query!(
-            "INSERT OR IGNORE INTO note_tags (note_id, tag) VALUES (?, ?)",
-            id,
-            t
-        )
-        .execute(pool)
-        .await?;
+        sqlx::query!("INSERT OR IGNORE INTO note_tags (note_id, tag) VALUES (?, ?)", id, t).execute(pool).await?;
     }
     Ok(())
 }
 
-pub async fn create(
-    pool: &SqlitePool,
-    author_id: i64,
-    input: &NoteInput,
-    now: OffsetDateTime,
-) -> Result<i64, OcError> {
+pub async fn create(pool: &SqlitePool, author_id: i64, input: &NoteInput, now: OffsetDateTime) -> Result<i64, OcError> {
     input.validate()?;
     let title = input.title.trim();
     let id = sqlx::query_scalar!(
@@ -180,12 +150,7 @@ pub async fn create(
     Ok(id)
 }
 
-pub async fn update(
-    pool: &SqlitePool,
-    id: i64,
-    input: &NoteInput,
-    now: OffsetDateTime,
-) -> Result<(), OcError> {
+pub async fn update(pool: &SqlitePool, id: i64, input: &NoteInput, now: OffsetDateTime) -> Result<(), OcError> {
     input.validate()?;
     let title = input.title.trim();
     let r = sqlx::query!(
@@ -209,41 +174,23 @@ pub struct NotesStore(pub SqlitePool);
 
 impl SoftDelete for NotesStore {
     async fn soft_delete(&self, id: i64, now: OffsetDateTime) -> Result<(), OcError> {
-        let r = sqlx::query!(
-            "UPDATE notes SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL",
-            now,
-            id
-        )
-        .execute(&self.0)
-        .await?;
-        if r.rows_affected() == 0 {
-            Err(OcError::NotFound)
-        } else {
-            Ok(())
-        }
+        let r = sqlx::query!("UPDATE notes SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL", now, id)
+            .execute(&self.0)
+            .await?;
+        if r.rows_affected() == 0 { Err(OcError::NotFound) } else { Ok(()) }
     }
 
     async fn restore(&self, id: i64) -> Result<(), OcError> {
-        let r = sqlx::query!(
-            "UPDATE notes SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL",
-            id
-        )
-        .execute(&self.0)
-        .await?;
-        if r.rows_affected() == 0 {
-            Err(OcError::NotFound)
-        } else {
-            Ok(())
-        }
+        let r = sqlx::query!("UPDATE notes SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL", id)
+            .execute(&self.0)
+            .await?;
+        if r.rows_affected() == 0 { Err(OcError::NotFound) } else { Ok(()) }
     }
 
     async fn purge_older_than(&self, cutoff: OffsetDateTime) -> Result<u64, OcError> {
-        Ok(sqlx::query!(
-            "DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?",
-            cutoff
-        )
-        .execute(&self.0)
-        .await?
-        .rows_affected())
+        Ok(sqlx::query!("DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?", cutoff)
+            .execute(&self.0)
+            .await?
+            .rows_affected())
     }
 }

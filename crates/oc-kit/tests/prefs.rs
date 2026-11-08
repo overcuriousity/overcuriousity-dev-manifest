@@ -17,12 +17,7 @@ async fn app() -> (tempfile::TempDir, Router) {
         .route(
             "/p",
             get(|PagePrefs(p, src): PagePrefs| async move {
-                format!(
-                    "{} {} {}",
-                    p.theme.as_str(),
-                    p.density.as_str(),
-                    src.as_str()
-                )
+                format!("{} {} {}", p.theme.as_str(), p.density.as_str(), src.as_str())
             }),
         )
         .nest("/auth", router(st.clone()))
@@ -43,21 +38,9 @@ fn post(body: &str, cookie: Option<&str>) -> axum::http::Request<Body> {
 async fn a_signed_in_users_theme_follows_them_to_a_new_session() {
     let (_d, app) = app().await;
     let c = sign_in(&app, "ada", "pw-ada-123").await;
-    assert_eq!(
-        send(&app, post("theme=dark&density=compact", Some(&c)))
-            .await
-            .status(),
-        StatusCode::NO_CONTENT
-    );
+    assert_eq!(send(&app, post("theme=dark&density=compact", Some(&c))).await.status(), StatusCode::NO_CONTENT);
     let c2 = sign_in(&app, "ada", "pw-ada-123").await;
-    let r = send(
-        &app,
-        req_get("/p")
-            .header(header::COOKIE, c2)
-            .body(Body::empty())
-            .unwrap(),
-    )
-    .await;
+    let r = send(&app, req_get("/p").header(header::COOKIE, c2).body(Body::empty()).unwrap()).await;
     assert_eq!(body(r).await, "dark compact user");
 }
 
@@ -71,10 +54,7 @@ async fn signed_out_pages_use_local_preferences() {
 #[tokio::test]
 async fn unknown_values_are_rejected_and_sign_in_is_required() {
     let (_d, app) = app().await;
-    assert_eq!(
-        send(&app, post("theme=dark", None)).await.status(),
-        StatusCode::UNAUTHORIZED
-    );
+    assert_eq!(send(&app, post("theme=dark", None)).await.status(), StatusCode::UNAUTHORIZED);
     let c = sign_in(&app, "ada", "pw-ada-123").await;
     let r = send(&app, post("theme=neon", Some(&c))).await;
     assert_eq!(r.status(), StatusCode::UNPROCESSABLE_ENTITY);

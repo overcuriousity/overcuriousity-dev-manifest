@@ -54,16 +54,12 @@ async fn discovery(State(idp): State<Idp>) -> Json<Value> {
 }
 
 async fn jwks() -> Json<Value> {
-    let mut jwk =
-        Jwk::from_encoding_key(&EncodingKey::from_ec_pem(KEY).unwrap(), Algorithm::ES256).unwrap();
+    let mut jwk = Jwk::from_encoding_key(&EncodingKey::from_ec_pem(KEY).unwrap(), Algorithm::ES256).unwrap();
     jwk.common.key_id = Some("k1".into());
     Json(json!({ "keys": [jwk] }))
 }
 
-async fn token(
-    State(idp): State<Idp>,
-    Form(f): Form<std::collections::HashMap<String, String>>,
-) -> Json<Value> {
+async fn token(State(idp): State<Idp>, Form(f): Form<std::collections::HashMap<String, String>>) -> Json<Value> {
     let (sub, nonce) = f["code"].split_once(':').unwrap();
     assert!(f.contains_key("code_verifier"), "PKCE verifier missing");
     let aud = f.get("client_id").cloned().unwrap_or_else(|| "app".into());

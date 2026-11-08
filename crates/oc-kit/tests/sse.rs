@@ -20,26 +20,13 @@ fn app(b: Broadcaster<u32>, timeout: Duration) -> Router {
         get(move || {
             let rx = b.subscribe();
             async move {
-                sse_response(rx, |v: &u32| {
-                    v.is_multiple_of(2).then(|| SseEvent {
-                        name: "tick",
-                        data: v.to_string(),
-                    })
-                })
+                sse_response(rx, |v: &u32| v.is_multiple_of(2).then(|| SseEvent { name: "tick", data: v.to_string() }))
             }
         }),
     );
     let cfg = OcConfig::default();
-    secure(
-        r,
-        &cfg.deployment().unwrap(),
-        &cfg.trusted_proxies,
-        Limits {
-            timeout,
-            ..Limits::default()
-        },
-    )
-    .layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 1))))
+    secure(r, &cfg.deployment().unwrap(), &cfg.trusted_proxies, Limits { timeout, ..Limits::default() })
+        .layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 1))))
 }
 
 async fn read_for(body: &mut Body, d: Duration) -> String {
@@ -56,40 +43,26 @@ async fn read_for(body: &mut Body, d: Duration) -> String {
 }
 
 fn req() -> Request<Body> {
-    Request::get("/live")
-        .header(header::HOST, "localhost:8080")
-        .body(Body::empty())
-        .unwrap()
+    Request::get("/live").header(header::HOST, "localhost:8080").body(Body::empty()).unwrap()
 }
 
 #[tokio::test]
 async fn events_stream_with_their_names_and_disable_proxy_buffering() {
     let b = Broadcaster::new(16);
-    let res = app(b.clone(), Duration::from_secs(5))
-        .oneshot(req())
-        .await
-        .unwrap();
+    let res = app(b.clone(), Duration::from_secs(5)).oneshot(req()).await.unwrap();
     assert_eq!(res.headers()["x-accel-buffering"], "no");
     assert_eq!(res.headers()[header::CONTENT_TYPE], "text/event-stream");
     for v in 1..=4 {
         b.send(v);
     }
     let text = read_for(&mut res.into_body(), Duration::from_millis(200)).await;
-    assert!(
-        text.contains("event: tick\ndata: 2")
-            && text.contains("data: 4")
-            && !text.contains("data: 1"),
-        "{text}"
-    );
+    assert!(text.contains("event: tick\ndata: 2") && text.contains("data: 4") && !text.contains("data: 1"), "{text}");
 }
 
 #[tokio::test]
 async fn a_lagging_subscriber_receives_resync_and_keeps_streaming() {
     let b = Broadcaster::new(2);
-    let res = app(b.clone(), Duration::from_secs(5))
-        .oneshot(req())
-        .await
-        .unwrap();
+    let res = app(b.clone(), Duration::from_secs(5)).oneshot(req()).await.unwrap();
     for v in 0..10 {
         b.send(v * 2);
     }
@@ -97,26 +70,15 @@ async fn a_lagging_subscriber_receives_resync_and_keeps_streaming() {
     let first = read_for(&mut body, Duration::from_millis(150)).await;
     assert!(first.contains("event: resync"), "{first}");
     b.send(100);
-    assert!(
-        read_for(&mut body, Duration::from_millis(150))
-            .await
-            .contains("data: 100")
-    );
+    assert!(read_for(&mut body, Duration::from_millis(150)).await.contains("data: 100"));
 }
 
 #[tokio::test]
 async fn the_stream_is_not_cut_by_the_request_timeout() {
     let b = Broadcaster::new(4);
-    let res = app(b.clone(), Duration::from_millis(100))
-        .oneshot(req())
-        .await
-        .unwrap();
+    let res = app(b.clone(), Duration::from_millis(100)).oneshot(req()).await.unwrap();
     let mut body = res.into_body();
     tokio::time::sleep(Duration::from_millis(300)).await;
     b.send(8);
-    assert!(
-        read_for(&mut body, Duration::from_millis(150))
-            .await
-            .contains("data: 8")
-    );
+    assert!(read_for(&mut body, Duration::from_millis(150)).await.contains("data: 8"));
 }

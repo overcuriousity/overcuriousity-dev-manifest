@@ -11,10 +11,7 @@ fn argon() -> Result<Argon2<'static>, OcError> {
 
 pub fn hash(secret: &str) -> Result<String, OcError> {
     let salt = SaltString::generate(&mut OsRng);
-    Ok(argon()?
-        .hash_password(secret.as_bytes(), &salt)
-        .map_err(OcError::internal)?
-        .to_string())
+    Ok(argon()?.hash_password(secret.as_bytes(), &salt).map_err(OcError::internal)?.to_string())
 }
 
 pub fn verify(secret: &str, stored: &str) -> bool {
@@ -34,7 +31,5 @@ pub fn generate(len: usize) -> String {
     use rand::Rng;
     const ALPHABET: &[u8] = b"abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let mut rng = rand::rng();
-    (0..len)
-        .map(|_| char::from(ALPHABET[rng.random_range(0..ALPHABET.len())]))
-        .collect()
+    (0..len).map(|_| char::from(ALPHABET[rng.random_range(0..ALPHABET.len())])).collect()
 }

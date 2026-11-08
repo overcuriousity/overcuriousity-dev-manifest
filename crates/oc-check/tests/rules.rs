@@ -3,48 +3,22 @@ use std::path::Path;
 use oc_check::{check_file, check_html};
 
 fn rules(path: &str, text: &str) -> Vec<&'static str> {
-    check_file(Path::new(path), text)
-        .into_iter()
-        .map(|f| f.rule)
-        .collect()
+    check_file(Path::new(path), text).into_iter().map(|f| f.rule).collect()
 }
 
 #[test]
 fn each_bad_snippet_triggers_exactly_its_rule() {
     let unsafe_inline = concat!("script-src 'unsafe", "-inline'");
-    let cases: [(&str, String, &str); 9] = [
+    let cases: [(&str, String, &str); 10] = [
+        ("a/x.html", "<button onclick=\"go()\">x</button>".into(), "inline-handler"),
         ("a/x.css", ".a { color: #ff0000; }".into(), "literal-colour"),
-        (
-            "a/x.js",
-            "el.textContent = 'rgb(1, 2, 3)';".into(),
-            "literal-colour",
-        ),
-        (
-            "a/x.html",
-            "<p style=\"margin:0\">x</p>".into(),
-            "inline-style",
-        ),
-        (
-            "a/x.html",
-            "<script>alert1()</script>".into(),
-            "inline-script",
-        ),
+        ("a/x.js", "el.textContent = 'rgb(1, 2, 3)';".into(), "literal-colour"),
+        ("a/x.html", "<p style=\"margin:0\">x</p>".into(), "inline-style"),
+        ("a/x.html", "<script>alert1()</script>".into(), "inline-script"),
         ("a/x.html", "<button hx-on:click=\"x\">".into(), "hx-on"),
-        (
-            "a/x.js",
-            "if (confirm(\"Sure?\")) go();".into(),
-            "native-dialog",
-        ),
-        (
-            "a/x.css",
-            "@import url(https://cdn.example/x.css);".into(),
-            "external-url",
-        ),
-        (
-            "a/x.rs",
-            format!("const CSP: &str = \"{unsafe_inline}\";"),
-            "csp-unsafe",
-        ),
+        ("a/x.js", "if (confirm(\"Sure?\")) go();".into(), "native-dialog"),
+        ("a/x.css", "@import url(https://cdn.example/x.css);".into(), "external-url"),
+        ("a/x.rs", format!("const CSP: &str = \"{unsafe_inline}\";"), "csp-unsafe"),
         ("a/x.css", ".a { font-size: 0.8rem; }".into(), "small-text"),
     ];
     for (path, text, rule) in cases {
@@ -56,14 +30,14 @@ fn each_bad_snippet_triggers_exactly_its_rule() {
 fn clean_snippets_pass() {
     assert!(rules("a/00-tokens.css", ":root { --c: #ffffff; }").is_empty());
     assert!(rules("a/x.css", ".a { color: var(--c); font-size: max(0.75rem, 12px); background: color-mix(in srgb, var(--c) 10%, transparent); }").is_empty());
-    assert!(rules("a/x.html", "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg><a href=\"#main\">x</a><script src=\"/a.js\"></script>").is_empty());
     assert!(
         rules(
-            "a/x.js",
-            "export function confirmEnabled(a, b) { return a === b; }"
+            "a/x.html",
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg><a href=\"#main\">x</a><script src=\"/a.js\"></script>"
         )
         .is_empty()
     );
+    assert!(rules("a/x.js", "export function confirmEnabled(a, b) { return a === b; }").is_empty());
 }
 
 #[test]
@@ -75,8 +49,15 @@ fn vendor_files_may_contain_urls_but_not_unsafe_csp() {
 
 #[test]
 fn rendered_html_allows_the_theme_color_meta_only() {
-    let ok =
-        "<meta name=\"theme-color\" media=\"(prefers-color-scheme: light)\" content=\"#f8f6f1\">";
+    let ok = "<meta name=\"theme-color\" media=\"(prefers-color-scheme: light)\" content=\"#f8f6f1\">";
     assert!(check_html(ok).is_empty());
     assert_eq!(check_html("<div style=\"color:red\">").len(), 1);
+}
+
+#[test]
+fn own_origin_links_are_allowed_in_rendered_pages() {
+    assert!(
+        oc_check::check_html_for("<a href=\"http://localhost:8080/notes/1\">x</a>", "http://localhost:8080").is_empty()
+    );
+    assert_eq!(oc_check::check_html_for("<a href=\"https://evil.example/\">x</a>", "http://localhost:8080").len(), 1);
 }

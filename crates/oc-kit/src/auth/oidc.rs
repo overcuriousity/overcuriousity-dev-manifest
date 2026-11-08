@@ -12,9 +12,8 @@ use jsonwebtoken::jwk::JwkSet;
 use jsonwebtoken::{DecodingKey, Validation, decode, decode_header};
 use openidconnect::core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata};
 use openidconnect::{
-    AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet,
-    EndpointSet, IssuerUrl, Nonce, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope,
-    TokenResponse,
+    AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet, EndpointSet, IssuerUrl,
+    Nonce, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, TokenResponse,
 };
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -29,14 +28,8 @@ use crate::session::USER_KEY;
 
 const PENDING_KEY: &str = "oc.oidc.pending";
 
-type Client = CoreClient<
-    EndpointSet,
-    EndpointNotSet,
-    EndpointNotSet,
-    EndpointNotSet,
-    EndpointMaybeSet,
-    EndpointMaybeSet,
->;
+type Client =
+    CoreClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointMaybeSet, EndpointMaybeSet>;
 
 pub struct Oidc {
     cfg: OidcConfig,
@@ -64,8 +57,7 @@ impl Oidc {
             .map_err(OcError::internal)?;
         Ok(Arc::new(Self {
             cfg: cfg.clone(),
-            redirect: RedirectUrl::new(format!("{}/auth/oidc/callback", dep.origin))
-                .map_err(OcError::internal)?,
+            redirect: RedirectUrl::new(format!("{}/auth/oidc/callback", dep.origin)).map_err(OcError::internal)?,
             resource: format!("{}/mcp", dep.origin),
             http,
             client: OnceCell::new(),
@@ -77,24 +69,17 @@ impl Oidc {
     async fn client(&self) -> Result<&(Client, String), OcError> {
         self.client
             .get_or_try_init(|| async {
-                let issuer =
-                    IssuerUrl::new(self.cfg.issuer.as_str().trim_end_matches('/').to_owned())
-                        .map_err(OcError::internal)?;
-                let meta = CoreProviderMetadata::discover_async(issuer, &self.http)
-                    .await
-                    .map_err(|e| {
-                        tracing::warn!(error = %e, "OIDC discovery failed");
-                        OcError::BadRequest(
-                            "The sign-in provider is not reachable. Try again later.".into(),
-                        )
-                    })?;
+                let issuer = IssuerUrl::new(self.cfg.issuer.as_str().trim_end_matches('/').to_owned())
+                    .map_err(OcError::internal)?;
+                let meta = CoreProviderMetadata::discover_async(issuer, &self.http).await.map_err(|e| {
+                    tracing::warn!(error = %e, "OIDC discovery failed");
+                    OcError::BadRequest("The sign-in provider is not reachable. Try again later.".into())
+                })?;
                 let jwks_uri = meta.jwks_uri().url().to_string();
                 let client = CoreClient::from_provider_metadata(
                     meta,
                     ClientId::new(self.cfg.client_id.clone()),
-                    Some(ClientSecret::new(
-                        self.cfg.client_secret.expose().to_owned(),
-                    )),
+                    Some(ClientSecret::new(self.cfg.client_secret.expose().to_owned())),
                 )
                 .set_redirect_uri(self.redirect.clone());
                 Ok((client, jwks_uri))
@@ -109,15 +94,8 @@ impl Oidc {
             return Ok(set.clone());
         }
         let (_, uri) = self.client().await?;
-        let set: JwkSet = self
-            .http
-            .get(uri)
-            .send()
-            .await
-            .map_err(OcError::internal)?
-            .json()
-            .await
-            .map_err(OcError::internal)?;
+        let set: JwkSet =
+            self.http.get(uri).send().await.map_err(OcError::internal)?.json().await.map_err(OcError::internal)?;
         *self.jwks.write().await = Some((set.clone(), Instant::now()));
         Ok(set)
     }
@@ -167,9 +145,7 @@ impl Oidc {
 }
 
 pub(super) fn routes() -> Router<AuthState> {
-    Router::new()
-        .route("/oidc/start", get(start))
-        .route("/oidc/callback", get(callback))
+    Router::new().route("/oidc/start", get(start)).route("/oidc/callback", get(callback))
 }
 
 fn oidc(st: &AuthState) -> Result<&Oidc, OcError> {
@@ -190,11 +166,8 @@ async fn start(
     let o = oidc(&st)?;
     let (client, _) = o.client().await?;
     let (challenge, verifier) = PkceCodeChallenge::new_random_sha256();
-    let mut req = client.authorize_url(
-        CoreAuthenticationFlow::AuthorizationCode,
-        CsrfToken::new_random,
-        Nonce::new_random,
-    );
+    let mut req =
+        client.authorize_url(CoreAuthenticationFlow::AuthorizationCode, CsrfToken::new_random, Nonce::new_random);
     for s in o.cfg.scopes.iter().filter(|s| *s != "openid") {
         req = req.add_scope(Scope::new(s.clone()));
     }
@@ -205,10 +178,7 @@ async fn start(
         verifier: verifier.secret().clone(),
         next: safe_next(&q.next).to_owned(),
     };
-    session
-        .insert(PENDING_KEY, pending)
-        .await
-        .map_err(OcError::internal)?;
+    session.insert(PENDING_KEY, pending).await.map_err(OcError::internal)?;
     Ok(Redirect::to(url.as_str()).into_response())
 }
 
@@ -218,18 +188,8 @@ async fn callback(
     Query(q): Query<HashMap<String, String>>,
 ) -> Result<Response, OcError> {
     let o = oidc(&st)?;
-    let failed = || {
-        render_sign_in(
-            &st,
-            "/",
-            Some("Sign-in with the provider failed. Try again."),
-        )
-    };
-    let Some(p) = session
-        .remove::<Pending>(PENDING_KEY)
-        .await
-        .map_err(OcError::internal)?
-    else {
+    let failed = || render_sign_in(&st, "/", Some("Sign-in with the provider failed. Try again."));
+    let Some(p) = session.remove::<Pending>(PENDING_KEY).await.map_err(OcError::internal)? else {
         return Ok(failed());
     };
     let (Some(code), Some(state)) = (q.get("code"), q.get("state")) else {
@@ -242,11 +202,7 @@ async fn callback(
     let Ok(exchange) = client.exchange_code(AuthorizationCode::new(code.clone())) else {
         return Ok(failed());
     };
-    let token = match exchange
-        .set_pkce_verifier(PkceCodeVerifier::new(p.verifier))
-        .request_async(&o.http)
-        .await
-    {
+    let token = match exchange.set_pkce_verifier(PkceCodeVerifier::new(p.verifier)).request_async(&o.http).await {
         Ok(t) => t,
         Err(e) => {
             tracing::warn!(error = %e, "OIDC code exchange failed");
@@ -280,17 +236,10 @@ async fn callback(
     )
     .await?;
     let Some(user) = user else {
-        return Ok(render_sign_in(
-            &st,
-            "/",
-            Some("No account for this sign-in. Ask an admin to add you."),
-        ));
+        return Ok(render_sign_in(&st, "/", Some("No account for this sign-in. Ask an admin to add you.")));
     };
     session.cycle_id().await.map_err(OcError::internal)?;
-    session
-        .insert(USER_KEY, user.id)
-        .await
-        .map_err(OcError::internal)?;
+    session.insert(USER_KEY, user.id).await.map_err(OcError::internal)?;
     Ok(Redirect::to(&p.next).into_response())
 }
 
@@ -301,13 +250,9 @@ pub(crate) async fn user_from_jwt(st: &AuthState, token: &str) -> Result<Option<
     let Some((iss, sub)) = o.verify_jwt(token).await? else {
         return Ok(None);
     };
-    let id = sqlx::query_scalar!(
-        "SELECT user_id FROM oc_oidc_identities WHERE issuer = ? AND subject = ?",
-        iss,
-        sub
-    )
-    .fetch_optional(&st.pool)
-    .await?;
+    let id = sqlx::query_scalar!("SELECT user_id FROM oc_oidc_identities WHERE issuer = ? AND subject = ?", iss, sub)
+        .fetch_optional(&st.pool)
+        .await?;
     match id {
         Some(id) => users::by_id(&st.pool, id).await,
         None => Ok(None),
@@ -316,16 +261,10 @@ pub(crate) async fn user_from_jwt(st: &AuthState, token: &str) -> Result<Option<
 
 /// RFC 9728 metadata pointing MCP clients at the IdP. Mount at the root; it answers 404 without OIDC.
 pub fn resource_metadata_router() -> Router<AuthState> {
-    Router::new().route(
-        "/.well-known/oauth-protected-resource",
-        get(resource_metadata),
-    )
+    Router::new().route("/.well-known/oauth-protected-resource", get(resource_metadata))
 }
 
 async fn resource_metadata(State(st): State<AuthState>) -> Result<Response, OcError> {
     let o = oidc(&st)?;
-    Ok(
-        Json(serde_json::json!({ "resource": o.resource, "authorization_servers": [o.issuer()] }))
-            .into_response(),
-    )
+    Ok(Json(serde_json::json!({ "resource": o.resource, "authorization_servers": [o.issuer()] })).into_response())
 }

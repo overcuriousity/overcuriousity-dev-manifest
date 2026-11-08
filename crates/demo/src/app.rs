@@ -19,22 +19,9 @@ struct DemoFiles;
 
 pub async fn build(cfg: &OcConfig, pool: sqlx::SqlitePool) -> Result<(Router, AppState), OcError> {
     let dep = cfg.deployment()?;
-    let auth = AuthState::new(
-        pool.clone(),
-        dep.clone(),
-        cfg.auth.clone(),
-        APP,
-        BRANDING,
-        APP,
-    )
-    .await?;
+    let auth = AuthState::new(pool.clone(), dep.clone(), cfg.auth.clone(), APP, BRANDING, APP).await?;
     let (assets, assets_router) = (self::assets(), assets_router());
-    let st = AppState {
-        pool: pool.clone(),
-        auth: auth.clone(),
-        ingest: Broadcaster::new(256),
-        assets,
-    };
+    let st = AppState { pool: pool.clone(), auth: auth.clone(), ingest: Broadcaster::new(256), assets };
     let sessions = oc_kit::session::session_layer(&pool, APP, &dep).await?;
     let app = Router::new()
         .route("/healthz", get(health))
@@ -42,14 +29,8 @@ pub async fn build(cfg: &OcConfig, pool: sqlx::SqlitePool) -> Result<(Router, Ap
         .merge(web::routes())
         .merge(crate::api::router())
         .merge(crate::mcp::router(st.clone()))
-        .nest(
-            "/auth",
-            oc_kit::auth::router(auth.clone()).with_state(auth.clone()),
-        )
-        .nest(
-            "/_oc/prefs",
-            oc_kit::prefs::prefs_router().with_state(auth.clone()),
-        )
+        .nest("/auth", oc_kit::auth::router(auth.clone()).with_state(auth.clone()))
+        .nest("/_oc/prefs", oc_kit::prefs::prefs_router().with_state(auth.clone()))
         .merge(resource_metadata_router().with_state(auth))
         .with_state(st.clone())
         .fallback(web::errors::not_found)
@@ -57,10 +38,7 @@ pub async fn build(cfg: &OcConfig, pool: sqlx::SqlitePool) -> Result<(Router, Ap
         .layer(sessions)
         .merge(asset_router())
         .merge(assets_router);
-    let limits = Limits {
-        body_bytes: 1024 * 1024,
-        ..Limits::default()
-    };
+    let limits = Limits { body_bytes: 1024 * 1024, ..Limits::default() };
     Ok((secure(app, &dep, &cfg.trusted_proxies, limits), st))
 }
 
@@ -69,8 +47,7 @@ async fn health(State(st): State<AppState>) -> Result<&'static str, OcError> {
     Ok("ok")
 }
 
-static ASSETS: std::sync::OnceLock<(&'static oc_kit::assets::AssetSet, Router)> =
-    std::sync::OnceLock::new();
+static ASSETS: std::sync::OnceLock<(&'static oc_kit::assets::AssetSet, Router)> = std::sync::OnceLock::new();
 
 fn init() -> &'static (&'static oc_kit::assets::AssetSet, Router) {
     ASSETS.get_or_init(|| app_assets::<DemoFiles>("_demo"))

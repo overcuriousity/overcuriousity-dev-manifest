@@ -11,7 +11,7 @@
         <span class="oc-list__meta">{{ c.events }} events · {{ c.notes }} notes</span>
       </div>
       <button type="button" class="oc-btn oc-btn--danger" data-oc-dialog-open="purge-{{ c.id }}">Purge case</button>
-      {{ self.confirm(c) }}
+      {{ self.purge_dialog(c) }}
     </li>
   {%- endfor %}
   </ul>
