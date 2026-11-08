@@ -11,6 +11,7 @@ authors.workspace = true
 workspace = true
 
 [dependencies]
+tower-http = { version = "0.6", features = ["compression-gzip", "compression-br", "limit", "timeout", "trace", "sensitive-headers"] }
 tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 figment = { version = "0.10", features = ["toml", "env"] }
