@@ -1,5 +1,6 @@
 mod fragments;
 mod local;
+pub mod oidc;
 pub mod passkeys;
 mod tokens;
 
@@ -10,6 +11,7 @@ use crate::config::{AuthConfig, Deployment};
 use crate::error::OcError;
 
 pub use crate::identity::extract::{AdminUser, CurrentUser, MaybeUser};
+pub use oidc::resource_metadata_router;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Branding {
@@ -26,6 +28,7 @@ pub struct AuthState {
     pub branding: Branding,
     pub token_prefix: &'static str,
     pub webauthn: Option<std::sync::Arc<webauthn_rs::Webauthn>>,
+    pub oidc: Option<std::sync::Arc<oidc::Oidc>>,
 }
 
 impl AuthState {
@@ -42,6 +45,11 @@ impl AuthState {
         } else {
             None
         };
+        let oidc = cfg
+            .oidc
+            .as_ref()
+            .map(|o| oidc::Oidc::new(o, &dep))
+            .transpose()?;
         Ok(Self {
             pool,
             dep,
@@ -50,6 +58,7 @@ impl AuthState {
             branding,
             token_prefix,
             webauthn,
+            oidc,
         })
     }
 }
@@ -65,7 +74,10 @@ pub fn safe_next(next: &str) -> &str {
 
 /// Mount at `/auth`.
 pub fn router(state: AuthState) -> Router<AuthState> {
-    let r = Router::new().merge(local::routes()).merge(tokens::routes());
+    let mut r = Router::new().merge(local::routes()).merge(tokens::routes());
+    if state.oidc.is_some() {
+        r = r.merge(oidc::routes());
+    }
     if state.webauthn.is_some() {
         r.merge(passkeys::routes())
     } else {

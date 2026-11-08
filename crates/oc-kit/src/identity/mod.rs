@@ -19,9 +19,14 @@ pub async fn verify_bearer(st: &AuthState, token: &str) -> Result<Option<User>, 
         )
         .await;
     }
-    Ok(None)
+    crate::auth::oidc::user_from_jwt(st, token).await
 }
 
-pub fn www_authenticate(_st: &AuthState) -> Option<String> {
-    None
+pub fn www_authenticate(st: &AuthState) -> Option<String> {
+    st.oidc.as_ref().map(|_| {
+        format!(
+            "Bearer resource_metadata=\"{}/.well-known/oauth-protected-resource\"",
+            st.dep.origin
+        )
+    })
 }

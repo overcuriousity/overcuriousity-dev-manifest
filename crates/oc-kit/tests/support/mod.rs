@@ -1,5 +1,7 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used)]
 
+pub mod fake_idp;
+
 use std::net::SocketAddr;
 
 use axum::Router;
