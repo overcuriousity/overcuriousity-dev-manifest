@@ -1,3 +1,4 @@
+pub mod account;
 pub mod cases;
 pub mod errors;
 pub mod inspector;
@@ -23,6 +24,7 @@ pub fn routes() -> Router<AppState> {
         .merge(cases::routes())
         .merge(inspector::routes())
         .merge(live::routes())
+        .merge(account::routes())
 }
 
 /// Everything a signed-in page needs to render its shell.

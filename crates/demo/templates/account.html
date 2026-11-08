@@ -1,0 +1,22 @@
+<div class="oc-columns oc-stack">
+  <div class="oc-page-head"><h1 class="oc-text-page">Account</h1></div>
+  {{ who }}
+  <section class="oc-stack" aria-labelledby="appearance">
+    <h2 class="oc-text-section" id="appearance">Appearance</h2>
+    <div class="oc-row">{{ theme }}{{ density }}</div>
+  </section>
+  <section class="oc-stack" aria-labelledby="passkeys">
+    <h2 class="oc-text-section" id="passkeys">Passkeys</h2>
+    {{ passkeys }}
+  </section>
+  <section class="oc-stack" aria-labelledby="tokens">
+    <h2 class="oc-text-section" id="tokens">API tokens</h2>
+    <p class="oc-secondary">For scripts and MCP clients. Send as <code class="oc-mono">Authorization: Bearer</code>.</p>
+    <form class="oc-row" hx-post="/auth/tokens" hx-target="#oc-token-new" hx-swap="innerHTML">
+      <div class="oc-field"><label for="token-name">Token name</label><input class="oc-input" id="token-name" name="name" maxlength="80" required autocomplete="off"></div>
+      <button type="submit" class="oc-btn">{{ oc_kit::ui::Icon::New }}<span>Create token</span></button>
+    </form>
+    <div id="oc-token-new"></div>
+    {{ tokens }}
+  </section>
+</div>

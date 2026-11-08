@@ -51,6 +51,7 @@ pub async fn build(cfg: &OcConfig, pool: sqlx::SqlitePool) -> Result<(Router, Ap
         .merge(resource_metadata_router().with_state(auth))
         .with_state(st.clone())
         .fallback(web::errors::not_found)
+        .layer(axum::middleware::from_fn(web::errors::html_errors))
         .layer(sessions)
         .merge(asset_router())
         .merge(assets_router);
