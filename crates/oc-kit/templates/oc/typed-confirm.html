@@ -1,0 +1,14 @@
+<dialog id="{{ id }}" class="oc-dialog" aria-labelledby="{{ id }}-title">
+  <form class="oc-dialog__body" data-oc-confirm-name="{{ name_to_type }}"{{ post }}>
+    <h2 class="oc-dialog__title" id="{{ id }}-title">{{ title }}</h2>
+    <p>{{ text }}</p>
+    <div class="oc-field">
+      <label for="{{ id }}-name">Type {{ name_to_type }} to confirm</label>
+      <input class="oc-input" id="{{ id }}-name" name="name" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    </div>
+    <div class="oc-dialog__actions">
+      <button type="button" class="oc-btn" data-oc-dialog-close>Cancel</button>
+      <button type="submit" class="oc-btn oc-btn--danger" disabled>{{ action_label }}</button>
+    </div>
+  </form>
+</dialog>

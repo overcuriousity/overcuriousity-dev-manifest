@@ -1,0 +1,12 @@
+<div id="oc-token-list">
+{%- if tokens.is_empty() %}
+<div class="oc-empty"><p>No API tokens yet. Create one for scripts and MCP clients.</p></div>
+{%- else %}
+<ul class="oc-list" role="list">
+{%- for t in tokens %}
+<li><div class="oc-list__main"><span class="oc-list__title">{{ t.name }}</span><span class="oc-list__meta"><span class="oc-mono">{{ t.id }}</span> · {{ self.meta(t) }}</span></div>
+<button type="button" class="oc-btn oc-btn--danger" hx-post="/auth/tokens/{{ t.id }}/revoke" hx-target="closest li" hx-swap="outerHTML">Revoke</button></li>
+{%- endfor %}
+</ul>
+{%- endif %}
+</div>

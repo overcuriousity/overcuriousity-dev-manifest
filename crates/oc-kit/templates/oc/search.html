@@ -1,0 +1,5 @@
+<form class="oc-search" role="search"{{ attrs }}>
+  <label class="oc-sr-only" for="oc-search-{{ name }}">{{ label }}</label>
+  {{ Icon::Search.sized(IconSize::Row) }}
+  <input class="oc-input" id="oc-search-{{ name }}" type="search" name="{{ name }}" value="{{ value }}" autocomplete="off" spellcheck="false" data-oc-search data-oc-shortcut="/">
+</form>

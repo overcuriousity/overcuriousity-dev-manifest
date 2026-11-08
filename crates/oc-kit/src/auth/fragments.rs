@@ -1,23 +1,33 @@
-//! HTML fragments returned by the auth routes. Replaced by Askama components in `ui`.
+//! HTML fragments returned by the auth routes.
 
-use axum::response::{Html, IntoResponse, Response};
+use axum::response::{IntoResponse, Response};
 
 use crate::identity::tokens::TokenInfo;
+use crate::ui::{Button, Html, HxAttrs, Notice, TokenList, TokenMinted};
 
-pub(super) fn token_minted(_info: &TokenInfo, token: &str) -> Response {
-    Html(format!("<p>{token}</p>")).into_response()
+pub(super) fn token_minted(info: &TokenInfo, token: &str) -> Response {
+    Html::from(TokenMinted {
+        name: info.name.clone(),
+        token: token.to_owned(),
+    })
+    .into_response()
 }
 
 pub(super) fn token_revoked(info: &TokenInfo) -> Response {
-    Html(format!("<p>Revoked {}</p>", info.name)).into_response()
+    let undo = Button::default("Undo").attrs(
+        HxAttrs::post(format!("/auth/tokens/{}/restore", info.id))
+            .target("#oc-token-list")
+            .swap("outerHTML"),
+    );
+    let notice = Notice::success(format!("Revoked token '{}'", info.name))
+        .action(undo)
+        .autohide(crate::trash::UNDO_MS);
+    notice.oob().into_response()
 }
 
 pub(super) fn token_list(all: &[TokenInfo]) -> Response {
-    Html(
-        all.iter()
-            .map(|t| t.name.clone())
-            .collect::<Vec<_>>()
-            .join(","),
-    )
+    Html::from(TokenList {
+        tokens: all.to_vec(),
+    })
     .into_response()
 }

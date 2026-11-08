@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"{% if let Some(t) = self.theme_attr() %} data-theme="{{ t }}"{% endif %}{% if self.compact() %} data-density="compact"{% endif %} data-prefs="{{ prefs_source.as_str() }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{ title }} · {{ branding.app_name }}</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="{{ self.theme_light() }}">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="{{ self.theme_dark() }}">
+<meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"includeIndicatorStyles":false,"selfRequestsOnly":true}'>
+<script src="{{ self.asset("js/theme.js") }}"></script>
+<link rel="stylesheet" href="{{ self.asset("css/oc.css") }}">
+<link rel="stylesheet" href="{{ self.asset(&format!("css/profile-{}.css", self.profile_name())) }}">
+{%- for c in extra_css %}
+<link rel="stylesheet" href="{{ c }}">
+{%- endfor %}
+{{ head }}
+<script src="{{ self.asset("vendor/htmx.min.js") }}" defer></script>
+<script src="{{ self.asset("vendor/htmx-ext-sse.js") }}" defer></script>
+{%- for m in self.modules() %}
+<script type="module" src="{{ m }}"></script>
+{%- endfor %}
+</head>
+<body class="oc-app oc-app--{{ self.profile_name() }}">
+<a class="oc-sr-only" href="#main">Skip to content</a>
+<div class="oc-shell oc-shell--{{ self.profile_name() }}" id="oc-shell"{{ shell_attrs }}>
+{{ top }}
+{%- if self.workbench() %}
+{%- if !rail.is_empty() %}
+<nav class="oc-rail" aria-label="Tools">{% for r in rail %}{{ r }}{% endfor %}</nav>
+{%- endif %}
+{%- if let Some(f) = facets %}
+<aside class="oc-facets" id="facets" aria-label="Filters">{{ f }}</aside>
+{%- endif %}
+<main class="oc-main" id="main">{{ body }}</main>
+{%- if let Some(p) = pane %}
+<aside class="oc-pane" id="pane" aria-label="Story"><div class="oc-pane__resize" data-oc-pane-resize aria-hidden="true"></div>{{ p }}</aside>
+{%- endif %}
+{%- if let Some(i) = inspector %}
+<aside class="oc-inspector" id="inspector" aria-label="Details">{{ i }}</aside>
+{%- endif %}
+{%- if let Some(s) = statusbar %}{{ s }}{% endif %}
+{%- else %}
+<main class="oc-main" id="main">{{ body }}</main>
+{%- if let Some(t) = tabbar %}{{ t }}{% endif %}
+{%- endif %}
+</div>
+<div class="oc-notices" id="oc-notices" aria-live="polite"></div>
+<div class="oc-sr-only" id="oc-live" aria-live="polite"></div>
+<dialog id="oc-shortcuts" class="oc-dialog" aria-labelledby="oc-shortcuts-title">
+  <h2 class="oc-dialog__title" id="oc-shortcuts-title">Keyboard shortcuts</h2>
+  <dl class="oc-shortcuts">{% for (k, d) in shortcuts %}<dt><kbd>{{ k }}</kbd></dt><dd>{{ d }}</dd>{% endfor %}</dl>
+  <div class="oc-dialog__actions"><button type="button" class="oc-btn" data-oc-dialog-close>Close</button></div>
+</dialog>
+</body>
+</html>

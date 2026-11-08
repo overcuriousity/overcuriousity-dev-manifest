@@ -62,13 +62,26 @@ pub fn router(state: AuthState) -> Router<AuthState> {
 }
 
 pub(crate) fn render_sign_in(
-    _st: &AuthState,
-    _next: &str,
+    st: &AuthState,
+    next: &str,
     notice: Option<&str>,
 ) -> axum::response::Response {
+    use crate::ui::{Html, Notice, Page, Profile, SignInForm, TopBar};
     use axum::response::IntoResponse;
-    match notice {
-        Some(n) => axum::response::Html(format!("<p>{n}</p>")).into_response(),
-        None => "Sign in".into_response(),
-    }
+    let form = SignInForm {
+        local: st.cfg.local,
+        passkeys: st.cfg.passkeys,
+        oidc_label: st.cfg.oidc.as_ref().map(|o| o.display_name.clone()),
+        notice: notice.map(Notice::danger),
+        next: next.to_owned(),
+    };
+    let top = TopBar::new(st.branding, "/", crate::prefs::Prefs::default(), None);
+    Page::new(
+        "Sign in",
+        Profile::Everyday,
+        top,
+        Html::from(form),
+        crate::prefs::PrefsSource::Local,
+    )
+    .into_response()
 }

@@ -1,0 +1,8 @@
+<div class="oc-field">
+  <label for="sel-{{ name }}">{{ label }}</label>
+  <select class="oc-input" id="sel-{{ name }}" name="{{ name }}" data-oc-menu{{ attrs }}>
+  {%- for (value, text) in options %}
+    <option value="{{ value }}"{% if value.as_str() == selected.as_str() %} selected{% endif %}>{{ text }}</option>
+  {%- endfor %}
+  </select>
+</div>

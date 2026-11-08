@@ -1,0 +1,18 @@
+<header class="oc-topbar">
+  <a class="oc-topbar__logo" href="{{ home }}" aria-label="{{ branding.app_name }} home">{{ branding.logo_svg|safe }}<span>{{ branding.app_name }}</span></a>
+  {%- if !breadcrumb.is_empty() %}
+  <nav class="oc-breadcrumb" aria-label="Breadcrumb">{% for (href, text) in breadcrumb %}{{ Icon::ChevronRight }}<a href="{{ href }}">{{ text }}</a>{% endfor %}</nav>
+  {%- endif %}
+  {%- if !nav.is_empty() %}
+  <nav class="oc-topnav" aria-label="Main">{% for t in nav %}<a href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.icon }}<span>{{ t.label }}</span></a>{% endfor %}</nav>
+  {%- endif %}
+  <div class="oc-topbar__search">{% if let Some(s) = search %}{{ s }}{% endif %}</div>
+  <div class="oc-topbar__end">
+    {{ self.density_button() }}
+    {{ self.theme_button() }}
+    {%- if let Some(u) = user %}
+    <a class="oc-link--data" href="/account">{{ u.display_name }}</a>
+    <form method="post" action="/auth/sign-out"><button type="submit" class="oc-btn oc-btn--icon" aria-label="Sign out" data-oc-tip="Sign out">{{ Icon::SignOut }}</button></form>
+    {%- endif %}
+  </div>
+</header>

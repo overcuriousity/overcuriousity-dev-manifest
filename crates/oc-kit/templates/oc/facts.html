@@ -1,0 +1,6 @@
+<dl class="oc-facts">
+{%- for f in rows %}
+<dt>{{ f.label }}</dt>
+<dd><span class="oc-value{% if f.mono %} oc-mono{% endif %}">{% if let Some(h) = f.href %}<a href="{{ h }}">{{ f.value }}</a>{% else %}{{ f.value }}{% endif %}</span>{% if f.copy %}{{ f.copy_button() }}{% endif %}</dd>
+{%- endfor %}
+</dl>

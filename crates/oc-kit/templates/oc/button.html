@@ -1,0 +1,1 @@
+<button type="{% if submit %}submit{% else %}button{% endif %}" class="{{ self.classes() }}"{% if disabled %} disabled{% endif %}{{ attrs }}>{% if let Some(i) = icon %}{{ i }}{% endif %}<span>{{ label }}</span></button>

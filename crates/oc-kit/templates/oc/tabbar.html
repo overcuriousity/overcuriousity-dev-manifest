@@ -1,0 +1,1 @@
+<nav class="oc-tabbar" aria-label="Main">{% for t in items %}<a href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.tab_icon() }}<span>{{ t.label }}</span></a>{% endfor %}</nav>

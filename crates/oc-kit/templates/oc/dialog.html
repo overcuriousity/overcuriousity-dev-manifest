@@ -1,0 +1,5 @@
+<dialog id="{{ id }}" class="oc-dialog" aria-labelledby="{{ id }}-title">
+  <h2 class="oc-dialog__title" id="{{ id }}-title">{{ title }}</h2>
+  <div class="oc-dialog__body">{{ body }}</div>
+  <div class="oc-dialog__actions">{% for a in actions %}{{ a }}{% endfor %}</div>
+</dialog>

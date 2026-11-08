@@ -1,0 +1,1 @@
+<div class="oc-notice oc-notice--{{ kind.as_str() }}" role="status"{% if let Some(ms) = autohide_ms %} data-oc-autohide="{{ ms }}"{% endif %}>{{ kind.icon() }}<span class="oc-notice__text">{{ text }}</span>{% if let Some(a) = action %}{{ a }}{% endif %}</div>

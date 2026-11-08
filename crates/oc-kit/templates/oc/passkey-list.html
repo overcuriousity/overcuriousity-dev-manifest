@@ -1,0 +1,15 @@
+<div id="oc-passkey-list">
+{%- if passkeys.is_empty() %}
+<div class="oc-empty"><p>No passkeys yet. Add one to sign in without a password.</p></div>
+{%- else %}
+<ul class="oc-list" role="list">
+{%- for p in passkeys %}
+<li><div class="oc-list__main"><span class="oc-list__title">{{ p.name }}</span><span class="oc-list__meta">{% if let Some(u) = p.last_used %}last used {{ u }}{% else %}never used{% endif %}</span></div>
+<button type="button" class="oc-btn oc-btn--danger" hx-post="/auth/passkeys/{{ p.id }}/delete" hx-target="closest li" hx-swap="outerHTML">Remove</button></li>
+{%- endfor %}
+</ul>
+{%- endif %}
+{%- if enabled %}
+<div class="oc-row"><button type="button" class="oc-btn" data-oc-passkey="register">{{ Icon::Passkey }}<span>Add passkey</span></button></div>
+{%- endif %}
+</div>

@@ -1,0 +1,18 @@
+<div class="oc-columns">
+  <div class="oc-page-head"><h1 class="oc-text-page">Sign in</h1></div>
+  {%- if let Some(n) = notice %}{{ n }}{% endif %}
+  {%- if local %}
+  <form class="oc-form" method="post" action="/auth/sign-in">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="oc-field"><label for="username">Username</label><input class="oc-input" id="username" name="username" autocomplete="username webauthn" autocapitalize="off" spellcheck="false" required></div>
+    <div class="oc-field"><label for="password">Password</label><input class="oc-input" id="password" name="password" type="password" autocomplete="current-password" required></div>
+    <div class="oc-form__actions"><button type="submit" class="oc-btn oc-btn--primary">Sign in</button>
+    {%- if passkeys %}<button type="button" class="oc-btn" data-oc-passkey="login" data-next="{{ next }}">{{ Icon::Passkey }}<span>Sign in with a passkey</span></button>{% endif %}</div>
+  </form>
+  {%- else if passkeys %}
+  <div class="oc-form__actions"><button type="button" class="oc-btn oc-btn--primary" data-oc-passkey="login" data-next="{{ next }}">{{ Icon::Passkey }}<span>Sign in with a passkey</span></button></div>
+  {%- endif %}
+  {%- if let Some(l) = oidc_label %}
+  <form class="oc-row" method="get" action="/auth/oidc/start"><input type="hidden" name="next" value="{{ next }}"><button type="submit" class="oc-btn">{{ l }}</button></form>
+  {%- endif %}
+</div>
