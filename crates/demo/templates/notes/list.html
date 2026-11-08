@@ -1,0 +1,12 @@
+<ul class="oc-list" id="oc-note-list" role="list">
+{%- for n in notes %}
+  <li class="oc-list__item"{% if self.is_current(n) %} aria-current="page"{% endif %}>
+    <div class="oc-list__main">
+      <a class="oc-list__title oc-link--data" href="/notes/{{ n.id }}">{{ n.title }}</a>
+      <span class="oc-list__meta">{{ self.meta(n) }}</span>
+    </div>
+  </li>
+{%- else %}
+  <li class="oc-empty"><p>No notes match. Clear the filter or start a new note.</p></li>
+{%- endfor %}
+</ul>

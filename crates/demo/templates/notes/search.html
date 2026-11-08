@@ -1,0 +1,20 @@
+<div class="oc-columns">
+  <div class="oc-page-head"><h1 class="oc-text-page">Search</h1></div>
+  {{ search }}
+  <div id="oc-search-results" class="oc-stack">
+  {%- if q.is_empty() %}
+    <div class="oc-empty"><p>Type to search note titles and case names.</p></div>
+  {%- else if notes.is_empty() && cases.is_empty() %}
+    <div class="oc-empty"><p>Nothing matches '{{ q }}'. Try a shorter word.</p></div>
+  {%- else %}
+    {%- if !cases.is_empty() %}
+    <h2 class="oc-label">Cases</h2>
+    <ul class="oc-list" role="list">{% for c in cases %}<li class="oc-list__item"><div class="oc-list__main"><a class="oc-list__title oc-link--data" href="/cases/{{ c.id }}/timeline">{{ c.name }}</a><span class="oc-list__meta">{{ c.events }} events</span></div></li>{% endfor %}</ul>
+    {%- endif %}
+    {%- if !notes.is_empty() %}
+    <h2 class="oc-label">Notes</h2>
+    <ul class="oc-list" role="list">{% for n in notes %}<li class="oc-list__item"><div class="oc-list__main"><a class="oc-list__title oc-link--data" href="/notes/{{ n.id }}">{{ n.title }}</a><span class="oc-list__meta">{{ crate::web::when(n.updated_at) }}</span></div></li>{% endfor %}</ul>
+    {%- endif %}
+  {%- endif %}
+  </div>
+</div>

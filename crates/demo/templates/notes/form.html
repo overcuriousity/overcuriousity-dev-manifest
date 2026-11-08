@@ -1,0 +1,9 @@
+<form class="oc-form" method="post" action="{{ action }}">
+  <div class="oc-page-head"><h1 class="oc-text-page">{{ heading }}</h1></div>
+  {%- if let Some(n) = notice %}{{ n }}{% endif %}
+  <div class="oc-field"><label for="note-title">Title</label><input class="oc-input" id="note-title" name="title" value="{{ title }}" maxlength="200" required autocomplete="off"></div>
+  {{ case }}
+  <div class="oc-field"><label for="note-tags">Tags, separated by commas</label><input class="oc-input" id="note-tags" name="tags" value="{{ tags }}" autocomplete="off" autocapitalize="off"></div>
+  <div class="oc-field"><label for="note-body">Note</label><textarea class="oc-input" id="note-body" name="body" rows="12">{{ body }}</textarea></div>
+  <div class="oc-form__actions oc-row"><button type="submit" class="oc-btn oc-btn--primary">Save note</button><a href="{{ cancel }}">Cancel</a></div>
+</form>

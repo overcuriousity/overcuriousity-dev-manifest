@@ -1,0 +1,8 @@
+<article class="oc-stack">
+  <div class="oc-page-head"><h1 class="oc-text-page">{{ note.title }}</h1><div class="oc-row">{{ edit }}{{ delete }}</div></div>
+  {%- if !note.tags.is_empty() %}
+  <div class="oc-row">{% for t in note.tags %}<span class="oc-tag">{{ crate::web::tag_icon() }}{{ t }}</span>{% endfor %}</div>
+  {%- endif %}
+  <div class="oc-prose">{% for p in paras %}<p>{{ p }}</p>{% endfor %}</div>
+  {{ facts }}
+</article>

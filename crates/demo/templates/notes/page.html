@@ -1,0 +1,12 @@
+<div class="oc-columns" data-focus="{{ focus }}">
+  <section class="oc-region--list" aria-label="Notes">
+    <div class="oc-page-head"><h1 class="oc-text-page">Notes</h1>{% if let Some(b) = new_button %}{{ b }}{% endif %}</div>
+    {{ search }}
+    {{ list }}
+    <p class="oc-micro oc-trash-link"><a href="/trash">Trash</a></p>
+  </section>
+  <section class="oc-region--detail" aria-label="Note">{{ detail }}</section>
+  {%- if let Some(r) = related %}
+  <aside class="oc-region--related" aria-label="Related notes">{{ r }}</aside>
+  {%- endif %}
+</div>

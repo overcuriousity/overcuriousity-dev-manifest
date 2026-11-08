@@ -1,0 +1,15 @@
+<div class="oc-columns">
+  <div class="oc-page-head"><h1 class="oc-text-page">Trash</h1></div>
+  {%- if notes.is_empty() %}
+  {{ empty }}
+  {%- else %}
+  <ul class="oc-list" role="list">
+  {%- for n in notes %}
+    <li class="oc-list__item">
+      <div class="oc-list__main"><span class="oc-list__title">{{ n.title }}</span><span class="oc-list__meta">Deleted {% if let Some(d) = n.deleted_at %}{{ crate::web::when(d) }}{% endif %}</span></div>
+      <button type="button" class="oc-btn" hx-post="/trash/{{ n.id }}/restore">Restore</button>
+    </li>
+  {%- endfor %}
+  </ul>
+  {%- endif %}
+</div>

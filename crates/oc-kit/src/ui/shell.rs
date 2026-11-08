@@ -104,6 +104,7 @@ pub struct Page {
     pub extra_js: Vec<String>,
     pub head: Html,
     pub shell_attrs: super::HxAttrs,
+    pub notices: Html,
 }
 
 pub const BASE_SHORTCUTS: [(&str, &str); 3] = [
@@ -139,6 +140,7 @@ impl Page {
             extra_js: Vec::new(),
             head: Html::default(),
             shell_attrs: super::HxAttrs::new(),
+            notices: Html::default(),
         }
     }
 

@@ -1,0 +1,6 @@
+<h2 class="oc-label">Same case</h2>
+<ul class="oc-list" role="list">
+{%- for n in notes %}
+  <li class="oc-list__item"><div class="oc-list__main"><a class="oc-list__title oc-link--data" href="/notes/{{ n.id }}">{{ n.title }}</a><span class="oc-list__meta">{{ crate::web::when(n.updated_at) }}</span></div></li>
+{%- endfor %}
+</ul>
