@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE oc_api_tokens SET revoked_at = ? WHERE id = ? AND user_id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "c050001532a26895a2dfd01ed872edbd85ab0b2169797d689b88b79e7e381928"
+}

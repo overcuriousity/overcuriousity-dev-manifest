@@ -1,4 +1,6 @@
+mod fragments;
 mod local;
+mod tokens;
 
 use axum::Router;
 use sqlx::SqlitePool;
@@ -56,7 +58,7 @@ pub fn safe_next(next: &str) -> &str {
 /// Mount at `/auth`.
 pub fn router(state: AuthState) -> Router<AuthState> {
     let _ = &state;
-    Router::new().merge(local::routes())
+    Router::new().merge(local::routes()).merge(tokens::routes())
 }
 
 pub(crate) fn render_sign_in(
