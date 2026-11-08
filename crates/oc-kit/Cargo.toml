@@ -11,6 +11,11 @@ authors.workspace = true
 workspace = true
 
 [dependencies]
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate", "time"] }
+time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
+argon2 = { version = "0.5", features = ["std"] }
+rand = "0.9"
+tokio = { version = "1", features = ["rt", "macros", "time", "sync"] }
 tower-http = { version = "0.6", features = ["compression-gzip", "compression-br", "limit", "timeout", "trace", "sensitive-headers"] }
 tracing = "0.1"
 serde = { version = "1", features = ["derive"] }

@@ -6,4 +6,6 @@ pub mod error;
 pub mod tokens;
 
 pub use error::OcError;
+pub mod db;
+pub mod identity;
 pub mod security;
