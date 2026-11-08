@@ -20,7 +20,7 @@ Every component exists in `oc-kit` (`crates/oc-kit/src/ui/`) and appears in the 
 
 - MUST: header in surface fill, weight 500, secondary colour, visible vertical dividers between header cells, `border-strong` underline, sticky.
 - MUST: rows 2.25rem high (compact 1.95rem) with `border-subtle` hairlines; hover fills `bg-hover`.
-- MUST: selection is an `accent-dim` tint plus a 1 px accent frame around the row. *Why: owner compared tint + bar, tint only, tint + frame; the frame reads clearly without a heavy left bar.*
+- MUST: selection is an `accent-dim` tint plus a 1 px accent frame around the row. *Why: visible at a glance without a heavy left bar.*
 - MUST: a copy button next to every value worth copying, always visible, solid muted colour.
 - MUST: other row actions (filter to, exclude, pin) appear on hover or focus, stay visible on the selected row and are always visible on touch.
 - MUST: the actions column is right-aligned, its header visually hidden but named "Actions" for screen readers.

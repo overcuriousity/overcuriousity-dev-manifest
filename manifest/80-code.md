@@ -1,7 +1,7 @@
 # 80 · Code
 
 - MUST: comment only where the code is not self-explanatory, and then say why, briefly.
-- NEVER: narrate obvious steps, restate signatures in prose, write section-banner comments, or write a comment longer than the code it explains. *Why: agents slip here more than anywhere else; that is why it is also on the review checklist.*
+- NEVER: narrate obvious steps, restate signatures in prose, write section-banner comments, or write a comment longer than the code it explains.
 - MUST: one `thiserror` error type per crate with an HTTP status mapping; user-facing errors are one actionable sentence.
 - NEVER: `unwrap()` or `expect()` outside tests.
 - MUST: `tracing` for logs; no secrets in logs; authorization and cookie headers are redacted.

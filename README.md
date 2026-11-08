@@ -7,7 +7,6 @@ The shared rules for the apps I build: stack, security, visual identity, interac
 - **`crates/oc-check/`**: a lint that fails CI on literal colours, inline styles and scripts, native dialogs, CDN URLs and an unsafe CSP.
 - **`crates/demo/`**: an incident journal that shows every component in both layout profiles: an everyday notes app and a data-heavy timeline workbench.
 - **`templates/`**: files copied into each new repo: CI, releases with an offline bundle, Dependabot, deny rules, systemd unit, nginx, installer.
-- **`docs/retrofit.md`**: how to bring single pieces into an existing app.
 
 Agents start with `AGENTS.md`.
 

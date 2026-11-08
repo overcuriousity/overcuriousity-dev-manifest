@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repo is the overcuriousity dev manifest. It holds the rules for stack, security, look, interaction and ops of every app the owner builds, plus `oc-kit`, the crate that implements them. You are probably here because you were told to look at it.
+This repo is the overcuriousity dev manifest. It holds the rules for stack, security, look, interaction and ops of every app built to it, plus `oc-kit`, the crate that implements them. You are probably here because you were told to look at it.
 
 ## Read in this order
 
@@ -30,10 +30,6 @@ Rules are MUST, SHOULD, NEVER or MAY. Values live in `crates/oc-kit/assets/css/0
    - `security::secure(...)` around everything
 4. Render pages with `oc_kit::ui::Page` and the components in `crates/oc-kit/src/ui/`. Pick one profile (workbench or everyday).
 5. Record the manifest version the app follows in its own `AGENTS.md`.
-
-## Changing an existing app
-
-Do not migrate wholesale. Lift pieces with `docs/retrofit.md`, one at a time.
 
 ## Before you say you are done
 

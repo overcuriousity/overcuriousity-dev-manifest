@@ -27,8 +27,8 @@ fn backticked_paths(text: &str) -> Vec<String> {
 }
 
 #[test]
-fn every_path_named_in_agents_readme_and_retrofit_exists() {
-    for doc in ["AGENTS.md", "README.md", "docs/retrofit.md"] {
+fn every_path_named_in_agents_and_readme_exists() {
+    for doc in ["AGENTS.md", "README.md"] {
         for p in backticked_paths(&read(doc)) {
             assert!(root().join(p.trim_end_matches('/')).exists(), "{doc} names {p}, which does not exist");
         }

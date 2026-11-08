@@ -1,6 +1,6 @@
 # Sources
 
-Research and prior art behind the rules. Where evidence is thin, the rule says so.
+Research behind the rules. Where evidence is thin, the rule says so.
 
 - Valdez & Mehrabian (1994), *Effects of color on emotions*, J. Exp. Psychol.: General. Saturation and brightness drive arousal more than hue.
 - Okabe & Ito, *Color Universal Design*. Colour-blind-safe palettes, blue as anchor.
@@ -16,4 +16,3 @@ Research and prior art behind the rules. Where evidence is thin, the rule says s
 - Datastar security reference (data-star.dev/reference/security): `unsafe-eval` requirement.
 - Braille Institute: Atkinson Hyperlegible design notes.
 - WHATWG HTML, server-sent events: events without data are not dispatched. Fetch: `Origin: null` under `no-referrer`.
-- Prior art in the owner's repos: engram (tokens, motion rule), factum (theme rationale, contrast test, typed confirmation), effractor (UI rules, CSP, undo), Vestigo (density toggle, chart palette, copy buttons, in-place actions), peephole (CSP, cargo-deny, SHA-pinned actions), ctprobe (hardened unit).
