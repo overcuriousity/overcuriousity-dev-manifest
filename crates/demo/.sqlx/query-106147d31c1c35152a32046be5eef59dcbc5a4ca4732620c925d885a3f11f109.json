@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE oc_passkeys SET credential = ?, last_used_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "106147d31c1c35152a32046be5eef59dcbc5a4ca4732620c925d885a3f11f109"
+}

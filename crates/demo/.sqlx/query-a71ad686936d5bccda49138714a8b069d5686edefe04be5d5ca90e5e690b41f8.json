@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id!\", name, last_used_at AS \"last_used_at: OffsetDateTime\" FROM oc_passkeys\n           WHERE user_id = ? AND removed_at IS NULL ORDER BY created_at",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_used_at: OffsetDateTime",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "a71ad686936d5bccda49138714a8b069d5686edefe04be5d5ca90e5e690b41f8"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT name FROM oc_passkeys WHERE id = ? AND user_id = ? AND removed_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d2ee36891da27023c0554af638a0b9d73de3db56614214b00ef354c8c56ade1c"
+}

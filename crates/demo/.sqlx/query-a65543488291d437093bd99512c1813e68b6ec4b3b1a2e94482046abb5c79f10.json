@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT n.id AS \"id!\", n.case_id, c.name AS \"case_name?\", u.display_name AS author, n.title, n.body,\n                  n.created_at AS \"created_at: OffsetDateTime\", n.updated_at AS \"updated_at: OffsetDateTime\",\n                  n.deleted_at AS \"deleted_at: OffsetDateTime\"\n           FROM notes n JOIN oc_users u ON u.id = n.author_id LEFT JOIN cases c ON c.id = n.case_id\n           WHERE n.id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "case_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "case_name?",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "author",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "body",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: OffsetDateTime",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at: OffsetDateTime",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "deleted_at: OffsetDateTime",
+        "ordinal": 8,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "a65543488291d437093bd99512c1813e68b6ec4b3b1a2e94482046abb5c79f10"
+}

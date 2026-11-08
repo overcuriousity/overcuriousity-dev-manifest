@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO oc_preferences (user_id, theme, density) VALUES (?, ?, ?)\n         ON CONFLICT(user_id) DO UPDATE SET theme = excluded.theme, density = excluded.density",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "b33984e728be910122ac660f5f785237ed8f4e6c8f7c34ff52feab91d826fed8"
+}

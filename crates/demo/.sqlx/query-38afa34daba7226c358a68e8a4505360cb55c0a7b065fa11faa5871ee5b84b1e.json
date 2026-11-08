@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT t.secret_hash, u.id AS \"user_id!\", u.username, u.display_name, u.is_admin AS \"is_admin: bool\"\n           FROM oc_api_tokens t JOIN oc_users u ON u.id = t.user_id\n           WHERE t.id = ? AND t.revoked_at IS NULL AND u.disabled_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "secret_hash",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "user_id!",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "username",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "display_name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_admin: bool",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "38afa34daba7226c358a68e8a4505360cb55c0a7b065fa11faa5871ee5b84b1e"
+}

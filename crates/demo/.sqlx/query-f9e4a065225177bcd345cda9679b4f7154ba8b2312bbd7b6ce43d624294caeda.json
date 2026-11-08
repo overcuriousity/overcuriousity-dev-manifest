@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE oc_passkeys SET removed_at = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "f9e4a065225177bcd345cda9679b4f7154ba8b2312bbd7b6ce43d624294caeda"
+}

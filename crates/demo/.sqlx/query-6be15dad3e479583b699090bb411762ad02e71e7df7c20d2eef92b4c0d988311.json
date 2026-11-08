@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT c.id AS \"id!\", c.name, c.summary,\n                  (SELECT COUNT(*) FROM events e WHERE e.case_id = c.id) AS \"events!: i64\",\n                  (SELECT COUNT(*) FROM notes n WHERE n.case_id = c.id AND n.deleted_at IS NULL) AS \"notes!: i64\"\n           FROM cases c WHERE c.id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "summary",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "events!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "notes!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6be15dad3e479583b699090bb411762ad02e71e7df7c20d2eef92b4c0d988311"
+}

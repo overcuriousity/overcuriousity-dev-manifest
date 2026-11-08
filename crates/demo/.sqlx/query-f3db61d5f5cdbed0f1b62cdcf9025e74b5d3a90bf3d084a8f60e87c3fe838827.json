@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO oc_oidc_identities (issuer, subject, user_id) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "f3db61d5f5cdbed0f1b62cdcf9025e74b5d3a90bf3d084a8f60e87c3fe838827"
+}

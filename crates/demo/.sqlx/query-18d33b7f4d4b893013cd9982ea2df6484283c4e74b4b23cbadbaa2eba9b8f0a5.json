@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO events (case_id, ts, host, user, event_id, level, source, process, pid, parent, command_line, record,\n                             integrity, logon_id, source_file, sha256, message)\n         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id AS \"id!\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 17
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "18d33b7f4d4b893013cd9982ea2df6484283c4e74b4b23cbadbaa2eba9b8f0a5"
+}

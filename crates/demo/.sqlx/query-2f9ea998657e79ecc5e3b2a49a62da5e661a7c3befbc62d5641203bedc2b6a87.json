@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM oc_passkeys WHERE removed_at IS NOT NULL AND removed_at < ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "2f9ea998657e79ecc5e3b2a49a62da5e661a7c3befbc62d5641203bedc2b6a87"
+}

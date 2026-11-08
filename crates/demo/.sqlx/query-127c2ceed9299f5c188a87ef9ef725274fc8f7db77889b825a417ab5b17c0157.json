@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO oc_api_tokens (id, user_id, name, secret_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "127c2ceed9299f5c188a87ef9ef725274fc8f7db77889b825a417ab5b17c0157"
+}

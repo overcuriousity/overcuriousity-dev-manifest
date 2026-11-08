@@ -1,0 +1,24 @@
+# Incident journal (demo). Every key is optional; environment variables override it as
+# DEMO__SECTION__KEY, for example DEMO__BIND=127.0.0.1:9000 or DEMO__AUTH__OIDC__CLIENT_SECRET_FILE=/run/secrets/oidc.
+
+# The https address users see. Required unless the app is reached via localhost.
+# public_url = "https://journal.example.org"
+
+bind = "127.0.0.1:8080"
+trusted_proxies = ["127.0.0.1/32", "::1/128"]
+# data_dir = "/var/lib/demo"
+
+[auth]
+local = true
+passkeys = true
+
+# [auth.oidc]
+# issuer = "https://id.example.org/realms/main"
+# client_id = "journal"
+# client_secret = "file:///run/secrets/oidc-client-secret"
+# auto_provision = false
+# display_name = "Sign in with SSO"
+
+[app.ingest]
+enabled = true
+per_second = 2.0

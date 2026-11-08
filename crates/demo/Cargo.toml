@@ -1,11 +1,37 @@
 [package]
 name = "demo"
+description = "Incident journal: the reference app for the overcuriousity manifest, showing both UI profiles."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+publish = false
+
+[dependencies]
+oc-kit = { path = "../oc-kit" }
+askama = "0.16"
+axum = "0.8"
+base64 = "0.22"
+clap = { version = "4", features = ["derive"] }
+rand = "0.9"
+rand_chacha = "0.9"
+sd-notify = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate", "time"] }
+time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+rust-embed = { version = "8", features = ["debug-embed", "include-exclude"] }
+
+[dev-dependencies]
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+oc-check = { path = "../oc-check" }
 
 [lints]
 workspace = true

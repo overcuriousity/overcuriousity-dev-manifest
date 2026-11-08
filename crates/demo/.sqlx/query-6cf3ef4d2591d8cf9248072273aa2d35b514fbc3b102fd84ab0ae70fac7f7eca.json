@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE cases SET summary = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "6cf3ef4d2591d8cf9248072273aa2d35b514fbc3b102fd84ab0ae70fac7f7eca"
+}

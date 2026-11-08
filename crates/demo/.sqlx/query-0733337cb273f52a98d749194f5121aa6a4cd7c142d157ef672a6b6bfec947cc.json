@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COALESCE(MAX(id), 0) AS \"m!: i64\" FROM events WHERE case_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "m!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0733337cb273f52a98d749194f5121aa6a4cd7c142d157ef672a6b6bfec947cc"
+}

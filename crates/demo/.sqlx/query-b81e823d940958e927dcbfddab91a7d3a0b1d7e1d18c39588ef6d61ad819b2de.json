@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO note_tags (note_id, tag) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b81e823d940958e927dcbfddab91a7d3a0b1d7e1d18c39588ef6d61ad819b2de"
+}

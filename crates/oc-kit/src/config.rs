@@ -18,6 +18,8 @@ pub struct OcConfig {
     pub trusted_proxies: Vec<IpNet>,
     pub data_dir: Option<PathBuf>,
     pub auth: AuthConfig,
+    /// The app's own settings under `[app]`, read with [`OcConfig::app`].
+    pub app: Option<figment::value::Value>,
 }
 
 impl Default for OcConfig {
@@ -31,6 +33,7 @@ impl Default for OcConfig {
                 .collect(),
             data_dir: None,
             auth: AuthConfig::default(),
+            app: None,
         }
     }
 }
@@ -178,6 +181,15 @@ impl Deployment {
 }
 
 impl OcConfig {
+    pub fn app<T: DeserializeOwned + Default>(&self) -> Result<T, OcError> {
+        match &self.app {
+            Some(v) => v
+                .deserialize()
+                .map_err(|e| OcError::Config(format!("Invalid [app] configuration: {e}."))),
+            None => Ok(T::default()),
+        }
+    }
+
     pub fn data_dir(&self, app: &str) -> PathBuf {
         if let Some(d) = &self.data_dir {
             return d.clone();
