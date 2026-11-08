@@ -5,7 +5,10 @@ all-features = true
 version = 2
 yanked = "deny"
 # Every ignore needs a written reachability argument next to it.
-ignore = []
+ignore = [
+  { id = "RUSTSEC-2023-0071", reason = "rsa Marvin attack needs private-key decryption; webauthn-rs and JWT validation only verify signatures with public keys." },
+  { id = "RUSTSEC-2026-0374", reason = "basic-toml is used by askama_derive at compile time to read askama.toml; it never parses untrusted input at runtime." },
+]
 
 [licenses]
 version = 2

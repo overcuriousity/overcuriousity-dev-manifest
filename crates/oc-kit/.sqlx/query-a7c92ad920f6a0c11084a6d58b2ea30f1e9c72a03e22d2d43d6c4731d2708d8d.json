@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO oc_passkeys (user_id, name, credential, created_at) VALUES (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "a7c92ad920f6a0c11084a6d58b2ea30f1e9c72a03e22d2d43d6c4731d2708d8d"
+}

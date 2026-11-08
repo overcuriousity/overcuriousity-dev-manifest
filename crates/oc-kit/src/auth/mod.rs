@@ -1,5 +1,6 @@
 mod fragments;
 mod local;
+pub mod passkeys;
 mod tokens;
 
 use axum::Router;
@@ -24,6 +25,7 @@ pub struct AuthState {
     pub app: &'static str,
     pub branding: Branding,
     pub token_prefix: &'static str,
+    pub webauthn: Option<std::sync::Arc<webauthn_rs::Webauthn>>,
 }
 
 impl AuthState {
@@ -35,6 +37,11 @@ impl AuthState {
         branding: Branding,
         token_prefix: &'static str,
     ) -> Result<Self, OcError> {
+        let webauthn = if cfg.passkeys {
+            Some(passkeys::build(&dep, branding.app_name)?)
+        } else {
+            None
+        };
         Ok(Self {
             pool,
             dep,
@@ -42,6 +49,7 @@ impl AuthState {
             app,
             branding,
             token_prefix,
+            webauthn,
         })
     }
 }
@@ -57,8 +65,12 @@ pub fn safe_next(next: &str) -> &str {
 
 /// Mount at `/auth`.
 pub fn router(state: AuthState) -> Router<AuthState> {
-    let _ = &state;
-    Router::new().merge(local::routes()).merge(tokens::routes())
+    let r = Router::new().merge(local::routes()).merge(tokens::routes());
+    if state.webauthn.is_some() {
+        r.merge(passkeys::routes())
+    } else {
+        r
+    }
 }
 
 pub(crate) fn render_sign_in(
