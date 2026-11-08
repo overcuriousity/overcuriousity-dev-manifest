@@ -353,7 +353,7 @@ async fn page(
             )),
             Html::from(oc_kit::ui::Link::data("/cases", "All cases")),
             Html(format!(
-                "<span class=\"oc-status oc-status--success\" id=\"oc-live-state\">{}<span>Live</span></span>",
+                "<span class=\"oc-status oc-status--success\" id=\"oc-live-state\" data-oc-live>{}<span>Live</span></span>",
                 Icon::Success.sized(oc_kit::ui::IconSize::Row)
             )),
             Html(density.to_owned()),

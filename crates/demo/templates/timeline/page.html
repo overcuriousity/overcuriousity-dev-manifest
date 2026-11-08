@@ -1,3 +1,4 @@
+<div class="oc-timeline" hx-ext="sse" sse-connect="/cases/{{ case_id }}/live">
 <div class="oc-strip" id="oc-strip" hx-get="/cases/{{ case_id }}/timeline/histogram?q={{ crate::web::timeline::urlencode(q) }}" hx-trigger="load, sse:ingest throttle:2s, sse:resync" hx-swap="innerHTML"></div>
 <div class="oc-toolbar">
   <div class="oc-pills">{% for p in pills %}{{ p }}{% endfor %}</div>
@@ -6,7 +7,7 @@
   <span class="oc-micro oc-muted oc-num">{{ matched }} events</span>
 </div>
 {%- if let Some(e) = error %}<div class="oc-toolbar">{{ e }}</div>{% endif %}
-<div class="oc-table-wrap" id="oc-table-wrap" hx-ext="sse" sse-connect="/cases/{{ case_id }}/live">
+<div class="oc-table-wrap" id="oc-table-wrap">
 {%- if let Some(e) = empty %}
   <div class="oc-toolbar">{{ e }}</div>
 {%- else %}
@@ -20,7 +21,8 @@
         <th class="oc-col-actions"><span class="oc-sr-only">Actions</span></th>
       </tr>
     </thead>
-    <tbody data-oc-rows id="oc-rows">{{ rows }}</tbody>
+    <tbody data-oc-rows id="oc-rows" hx-get="/cases/{{ case_id }}/timeline/rows?q={{ crate::web::timeline::urlencode(q) }}" hx-trigger="sse:resync" hx-swap="innerHTML">{{ rows }}</tbody>
   </table>
 {%- endif %}
+</div>
 </div>

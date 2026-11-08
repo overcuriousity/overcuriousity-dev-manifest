@@ -1,6 +1,7 @@
 pub mod cases;
 pub mod errors;
 pub mod inspector;
+pub mod live;
 pub mod notes;
 pub mod timeline;
 
@@ -21,6 +22,7 @@ pub fn routes() -> Router<AppState> {
         .merge(timeline::routes())
         .merge(cases::routes())
         .merge(inspector::routes())
+        .merge(live::routes())
 }
 
 /// Everything a signed-in page needs to render its shell.
