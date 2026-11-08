@@ -12,5 +12,6 @@ pub mod identity;
 pub mod prefs;
 pub mod security;
 pub mod session;
+pub mod sse;
 pub mod trash;
 pub mod ui;

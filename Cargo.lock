@@ -2197,6 +2197,7 @@ dependencies = [
  "axum",
  "figment",
  "hex",
+ "http-body-util",
  "ipnet",
  "jsonwebtoken",
  "openidconnect",
@@ -2213,6 +2214,7 @@ dependencies = [
  "thiserror 2.0.21",
  "time",
  "tokio",
+ "tokio-stream",
  "tower",
  "tower-http",
  "tower-sessions",
@@ -3949,6 +3951,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
