@@ -63,6 +63,14 @@ pub fn ts(ms: &i64) -> String {
     from_ms(*ms).format(&f).unwrap_or_default()
 }
 
+pub fn verdict(e: &Event) -> Html {
+    render(&super::inspector::Verdict {
+        event_id: e.id,
+        state: e.verdict.clone().unwrap_or_default(),
+        oob: true,
+    })
+}
+
 pub fn level_class(level: &str) -> &'static str {
     match level {
         "error" => "danger",
@@ -264,6 +272,7 @@ pub fn workbench(ctx: &Ctx, case: &cases::Case, q: &str, body: Html) -> Page {
         attrs: shell(&format!("/cases/{}/timeline", case.id)).with("hx-trigger", "submit"),
     });
     let mut page = Page::new(case.name.clone(), Profile::Workbench, top, body, ctx.source);
+    page.extra_css = vec![super::demo_css()];
     page.rail = vec![
         IconButton::new(Icon::Facets, "Show or hide filters")
             .shortcut("\\")

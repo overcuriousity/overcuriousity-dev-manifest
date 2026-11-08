@@ -1,5 +1,6 @@
 pub mod cases;
 pub mod errors;
+pub mod inspector;
 pub mod notes;
 pub mod timeline;
 
@@ -19,6 +20,7 @@ pub fn routes() -> Router<AppState> {
         .merge(notes::routes())
         .merge(timeline::routes())
         .merge(cases::routes())
+        .merge(inspector::routes())
 }
 
 /// Everything a signed-in page needs to render its shell.
@@ -101,4 +103,8 @@ pub fn when(t: &time::OffsetDateTime) -> String {
 
 pub fn tag_icon() -> Html {
     Icon::Tag.sized(oc_kit::ui::IconSize::Row)
+}
+
+pub fn demo_css() -> String {
+    crate::app::assets().url("demo.css")
 }

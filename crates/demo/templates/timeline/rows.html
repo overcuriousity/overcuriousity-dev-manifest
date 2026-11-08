@@ -4,6 +4,7 @@
   <td>{{ e.host }}</td>
   <td>{{ e.user }}</td>
   <td class="oc-num oc-mono">{{ e.event_id }}</td>
+  <td class="oc-verdict-cell" id="verdict-cell-{{ e.id }}">{{ crate::web::timeline::verdict(e) }}</td>
   <td><span class="oc-status oc-status--{{ crate::web::timeline::level_class(e.level) }}">{{ crate::web::timeline::level_icon(e.level) }}<span>{{ e.level }}</span></span></td>
   <td>{{ e.process }}</td>
   <td class="oc-wide">{{ e.message }}</td>
@@ -20,5 +21,5 @@
 </tr>
 {%- endfor %}
 {%- if next.is_some() %}
-<tr class="oc-row-notice" hx-get="{{ self.next_url() }}" hx-trigger="revealed" hx-swap="outerHTML"><td colspan="17" class="oc-muted">Loading more events…</td></tr>
+<tr class="oc-row-notice" hx-get="{{ self.next_url() }}" hx-trigger="revealed" hx-swap="outerHTML"><td colspan="18" class="oc-muted">Loading more events…</td></tr>
 {%- endif %}

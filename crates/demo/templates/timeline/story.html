@@ -1,0 +1,15 @@
+<h2 class="oc-text-section">Story</h2>
+{%- if let Some(n) = notice %}{{ n }}{% endif %}
+<form class="oc-form" hx-post="/cases/{{ case_id }}/summary" hx-target="#pane-body" hx-swap="innerHTML">
+  <div class="oc-field"><label for="story-summary">Summary</label><textarea class="oc-input" id="story-summary" name="summary" rows="5">{{ summary }}</textarea></div>
+  <div class="oc-form__actions"><button type="submit" class="oc-btn">Save summary</button></div>
+</form>
+{%- if pinned.is_empty() %}
+{{ empty }}
+{%- else %}
+<ol class="oc-story-list">
+{%- for e in pinned %}
+  <li data-event="{{ e.id }}"><span class="oc-mono">{{ self.time(e) }}</span><span>{{ e.message }}</span><span class="oc-muted">{{ e.host }} · {{ e.user }} · {{ e.process }}</span></li>
+{%- endfor %}
+</ol>
+{%- endif %}

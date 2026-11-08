@@ -1,0 +1,8 @@
+<div class="oc-inspector__head">
+  <h2 class="oc-text-section">{{ e.message }}</h2>
+  <span class="oc-secondary">Event {{ e.event_id }} on {{ e.host }}</span>
+  {{ verdict }}
+  <div class="oc-verdict-actions">{{ self.button("benign", "Benign") }}{{ self.button("suspicious", "Suspicious") }}{{ self.button("malicious", "Malicious") }}{{ self.button("", "Clear") }}</div>
+</div>
+{%- if let Some(n) = notice %}{{ n }}{% endif %}
+{{ facts }}

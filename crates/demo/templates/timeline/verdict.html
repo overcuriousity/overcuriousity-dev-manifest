@@ -1,0 +1,6 @@
+<span class="oc-verdict"{% if !oob %} id="verdict-{{ event_id }}"{% endif %} data-state="{{ state }}">
+<span class="oc-status oc-status--success" data-v="benign">{{ oc_kit::ui::Icon::Success.sized(oc_kit::ui::IconSize::Row) }}<span>Benign</span></span>
+<span class="oc-status oc-status--warning" data-v="suspicious">{{ oc_kit::ui::Icon::Warning.sized(oc_kit::ui::IconSize::Row) }}<span>Suspicious</span></span>
+<span class="oc-status oc-status--danger" data-v="malicious">{{ oc_kit::ui::Icon::Danger.sized(oc_kit::ui::IconSize::Row) }}<span>Malicious</span></span>
+<span class="oc-status oc-status--none" data-v="">{{ oc_kit::ui::Icon::Info.sized(oc_kit::ui::IconSize::Row) }}<span>No verdict</span></span>
+</span>

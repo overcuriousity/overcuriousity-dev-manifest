@@ -28,7 +28,7 @@ pub async fn build(cfg: &OcConfig, pool: sqlx::SqlitePool) -> Result<(Router, Ap
         APP,
     )
     .await?;
-    let (assets, assets_router) = app_assets::<DemoFiles>("_demo");
+    let (assets, assets_router) = (self::assets(), assets_router());
     let st = AppState {
         pool: pool.clone(),
         auth: auth.clone(),
@@ -64,4 +64,19 @@ pub async fn build(cfg: &OcConfig, pool: sqlx::SqlitePool) -> Result<(Router, Ap
 async fn health(State(st): State<AppState>) -> Result<&'static str, OcError> {
     sqlx::query("SELECT 1").execute(&st.pool).await?;
     Ok("ok")
+}
+
+static ASSETS: std::sync::OnceLock<(&'static oc_kit::assets::AssetSet, Router)> =
+    std::sync::OnceLock::new();
+
+fn init() -> &'static (&'static oc_kit::assets::AssetSet, Router) {
+    ASSETS.get_or_init(|| app_assets::<DemoFiles>("_demo"))
+}
+
+pub fn assets() -> &'static oc_kit::assets::AssetSet {
+    init().0
+}
+
+fn assets_router() -> Router {
+    init().1.clone()
 }
