@@ -26,6 +26,9 @@ tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 rust-embed = { version = "8", features = ["debug-embed", "include-exclude"] }
+utoipa = { version = "6", features = ["axum_extras", "time"] }
+utoipa-axum = "0.3"
+rmcp = { version = "3", features = ["server", "transport-streamable-http-server", "macros"] }
 
 [dev-dependencies]
 tempfile = "3"

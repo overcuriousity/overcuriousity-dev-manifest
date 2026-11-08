@@ -177,3 +177,9 @@ async fn authenticated_responses_are_no_store() {
     let res = local().oneshot(r).await.unwrap();
     assert_eq!(res.headers()[header::CACHE_CONTROL], "no-store");
 }
+
+#[tokio::test]
+async fn a_credential_free_post_without_origin_reaches_the_handler() {
+    let r = req("POST", "/write").body(Body::empty()).unwrap();
+    assert_eq!(status(local(), r).await, StatusCode::OK);
+}

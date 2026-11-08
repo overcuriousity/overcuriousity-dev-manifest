@@ -7,7 +7,7 @@ use time::OffsetDateTime;
 use super::OcError;
 use super::query::{Query, Term};
 
-#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct Event {
     pub id: i64,
     pub case_id: i64,

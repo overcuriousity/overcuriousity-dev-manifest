@@ -5,7 +5,7 @@ use time::OffsetDateTime;
 use super::OcError;
 use oc_kit::trash::SoftDelete;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
 pub struct Note {
     pub id: i64,
     pub case_id: Option<i64>,

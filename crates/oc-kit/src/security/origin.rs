@@ -39,8 +39,8 @@ pub(super) async fn host_check(State(ctx): State<Arc<Ctx>>, req: Request, next: 
     next.run(Request::from_parts(parts, body)).await
 }
 
-/// Cookie-authenticated writes must come from our own origin. Bearer requests from non-browser
-/// clients carry neither `Origin` nor `Sec-Fetch-Site` and cannot be forged cross-site.
+/// Cookie-authenticated writes must come from our own origin. Non-browser clients send neither
+/// `Origin` nor `Sec-Fetch-Site`; they are let through only when they carry no cookie.
 pub(super) async fn origin_check(
     State(ctx): State<Arc<Ctx>>,
     req: Request,
@@ -55,11 +55,8 @@ pub(super) async fn origin_check(
     } else if let Some(site) = h.get("sec-fetch-site") {
         matches!(site.to_str(), Ok("same-origin" | "none"))
     } else {
-        let bearer = h
-            .get(header::AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
-            .is_some_and(|v| v.starts_with("Bearer "));
-        bearer && !h.contains_key(header::COOKIE)
+        // Without a cookie there is no ambient credential to forge, so the auth layer decides (401 or bearer).
+        !h.contains_key(header::COOKIE)
     };
     if allowed {
         next.run(req).await

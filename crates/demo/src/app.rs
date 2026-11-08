@@ -40,6 +40,8 @@ pub async fn build(cfg: &OcConfig, pool: sqlx::SqlitePool) -> Result<(Router, Ap
         .route("/healthz", get(health))
         .route("/", get(|| async { Redirect::to("/notes") }))
         .merge(web::routes())
+        .merge(crate::api::router())
+        .merge(crate::mcp::router(st.clone()))
         .nest(
             "/auth",
             oc_kit::auth::router(auth.clone()).with_state(auth.clone()),

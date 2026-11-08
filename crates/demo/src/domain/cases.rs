@@ -4,7 +4,7 @@ use time::OffsetDateTime;
 
 use super::OcError;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
 pub struct Case {
     pub id: i64,
     pub name: String,
