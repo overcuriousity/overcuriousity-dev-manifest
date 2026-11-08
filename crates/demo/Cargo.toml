@@ -13,14 +13,14 @@ publish = false
 oc-kit = { path = "../oc-kit" }
 askama = "0.16"
 axum = "0.8"
-base64 = "0.22"
+base64 = "0.23"
 clap = { version = "4", features = ["derive"] }
-rand = "0.9"
-rand_chacha = "0.9"
-sd-notify = "0.4"
+rand = "0.10"
+rand_chacha = "0.10"
+sd-notify = "0.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate", "time"] }
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "migrate", "time"] }
 time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
