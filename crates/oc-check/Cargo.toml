@@ -1,11 +1,23 @@
 [package]
 name = "oc-check"
+description = "Lint for the overcuriousity manifest: tokens only, strict-CSP markup, no native dialogs, no CDN URLs."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "oc-check"
+path = "src/main.rs"
+
+[dependencies]
+regex = "1"
+walkdir = "2"
 
 [lints]
 workspace = true
