@@ -20,8 +20,16 @@ pub struct MaybeUser(pub Option<User>);
 pub struct AdminUser(pub User);
 
 pub enum AuthRejection {
-    SignIn { next: String },
-    Unauthorized { bearer_hint: Option<String> },
+    SignIn {
+        next: String,
+    },
+    /// htmx cannot follow a 302 into a swap, so it gets a 401 with `HX-Redirect` instead.
+    HtmxSignIn {
+        next: String,
+    },
+    Unauthorized {
+        bearer_hint: Option<String>,
+    },
     Forbidden,
     Error(OcError),
 }
@@ -32,6 +40,12 @@ impl IntoResponse for AuthRejection {
             Self::SignIn { next } => {
                 Redirect::to(&format!("/auth/sign-in?next={}", urlencoding::encode(&next))).into_response()
             }
+            Self::HtmxSignIn { next } => (
+                StatusCode::UNAUTHORIZED,
+                [("hx-redirect", format!("/auth/sign-in?next={}", urlencoding::encode(&next)))],
+                "Sign in first.",
+            )
+                .into_response(),
             Self::Unauthorized { bearer_hint } => {
                 let www = bearer_hint.unwrap_or_else(|| "Bearer".into());
                 (
@@ -50,6 +64,16 @@ impl IntoResponse for AuthRejection {
 fn wants_html(parts: &Parts) -> bool {
     parts.headers.get(header::ACCEPT).and_then(|v| v.to_str().ok()).is_some_and(|a| a.contains("text/html"))
         && !parts.headers.contains_key("hx-request")
+}
+
+/// The page the user was on, from htmx's `HX-Current-URL`, as a local path.
+fn htmx_page(parts: &Parts) -> Option<String> {
+    let url = url::Url::parse(parts.headers.get("hx-current-url")?.to_str().ok()?).ok()?;
+    let mut page = url.path().to_owned();
+    if let Some(q) = url.query() {
+        page = format!("{page}?{q}");
+    }
+    Some(page)
 }
 
 fn bearer(parts: &Parts) -> Option<&str> {
@@ -91,6 +115,9 @@ where
             None if wants_html(parts) => Err(AuthRejection::SignIn {
                 next: parts.uri.path_and_query().map(|p| p.as_str().to_owned()).unwrap_or_else(|| "/".into()),
             }),
+            None if parts.headers.contains_key("hx-request") => {
+                Err(AuthRejection::HtmxSignIn { next: htmx_page(parts).unwrap_or_else(|| "/".into()) })
+            }
             None => Err(AuthRejection::Unauthorized { bearer_hint: crate::identity::www_authenticate(&st) }),
         }
     }

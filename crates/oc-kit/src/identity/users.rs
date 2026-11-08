@@ -20,7 +20,10 @@ pub async fn create(
     password: Option<&str>,
     now: OffsetDateTime,
 ) -> Result<User, OcError> {
-    let hash = password.map(password::hash).transpose()?;
+    let hash = match password {
+        Some(p) => Some(password::hash_blocking(p).await?),
+        None => None,
+    };
     let id = sqlx::query_scalar!(
         "INSERT INTO oc_users (username, display_name, is_admin, password_hash, created_at) VALUES (?, ?, ?, ?, ?) RETURNING id",
         username,
@@ -66,10 +69,10 @@ pub async fn verify_password(pool: &SqlitePool, username: &str, secret: &str) ->
     .fetch_optional(pool)
     .await?;
     let Some(row) = row else {
-        password::verify(secret, password::dummy_hash());
+        password::verify_blocking(secret, None).await;
         return Ok(None);
     };
-    let ok = row.password_hash.as_deref().is_some_and(|h| password::verify(secret, h));
+    let ok = password::verify_blocking(secret, row.password_hash.as_deref()).await;
     Ok(ok.then_some(User {
         id: row.id,
         username: row.username,
@@ -79,7 +82,7 @@ pub async fn verify_password(pool: &SqlitePool, username: &str, secret: &str) ->
 }
 
 pub async fn set_password(pool: &SqlitePool, user_id: i64, secret: &str) -> Result<(), OcError> {
-    let hash = password::hash(secret)?;
+    let hash = password::hash_blocking(secret).await?;
     sqlx::query!("UPDATE oc_users SET password_hash = ? WHERE id = ?", hash, user_id).execute(pool).await?;
     Ok(())
 }

@@ -8,6 +8,9 @@ Type=notify
 NotifyAccess=main
 WatchdogSec=30
 ExecStart=/usr/local/bin/@APP@ --config /etc/@APP@/config.toml serve
+# Secrets stay root-only on disk and reach the service as credentials, e.g. for OIDC:
+# LoadCredential=oidc-secret:/etc/@APP@/oidc-secret
+# with client_secret = "file:///run/credentials/@APP@.service/oidc-secret" in config.toml
 Restart=on-failure
 DynamicUser=yes
 StateDirectory=@APP@

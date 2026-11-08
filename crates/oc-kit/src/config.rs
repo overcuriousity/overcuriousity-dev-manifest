@@ -52,7 +52,8 @@ impl Default for AuthConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OidcConfig {
-    pub issuer: Url,
+    /// Kept verbatim: discovery and token validation compare it byte for byte, trailing slash included.
+    pub issuer: String,
     pub client_id: String,
     pub client_secret: Secret,
     #[serde(default = "default_scopes")]

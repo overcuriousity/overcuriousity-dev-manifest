@@ -33,3 +33,19 @@ pub fn generate(len: usize) -> String {
     let mut rng = rand::rng();
     (0..len).map(|_| char::from(ALPHABET[rng.random_range(0..ALPHABET.len())])).collect()
 }
+
+/// Argon2 costs tens of milliseconds of CPU, so it runs off the async worker threads.
+pub async fn hash_blocking(secret: &str) -> Result<String, OcError> {
+    let secret = secret.to_owned();
+    tokio::task::spawn_blocking(move || hash(&secret)).await.map_err(OcError::internal)?
+}
+
+/// With no stored hash it still verifies against a dummy, so timing does not reveal the account.
+pub async fn verify_blocking(secret: &str, stored: Option<&str>) -> bool {
+    let secret = secret.to_owned();
+    let (stored, real) = match stored {
+        Some(h) => (h.to_owned(), true),
+        None => (dummy_hash().to_owned(), false),
+    };
+    tokio::task::spawn_blocking(move || verify(&secret, &stored) && real).await.unwrap_or(false)
+}

@@ -28,22 +28,29 @@ impl Idp {
 
 /// The token endpoint treats the authorization code as `sub:nonce`, so tests choose both.
 pub async fn start() -> Idp {
+    start_at("").await
+}
+
+/// `path` like `/realm/` gives an issuer with a trailing slash, as Authentik and Auth0 use.
+pub async fn start_at(path: &str) -> Idp {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let issuer = format!("http://{}", listener.local_addr().unwrap());
+    let issuer = format!("http://{}{path}", listener.local_addr().unwrap());
+    let base = path.trim_end_matches('/');
     let idp = Idp { issuer };
     let app = Router::new()
-        .route("/.well-known/openid-configuration", get(discovery))
-        .route("/jwks", get(jwks))
-        .route("/token", post(token))
+        .route(&format!("{base}/.well-known/openid-configuration"), get(discovery))
+        .route(&format!("{base}/jwks"), get(jwks))
+        .route(&format!("{base}/token"), post(token))
         .with_state(idp.clone());
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     idp
 }
 
 async fn discovery(State(idp): State<Idp>) -> Json<Value> {
-    let i = &idp.issuer;
+    let i = idp.issuer.trim_end_matches('/');
+    let iss = &idp.issuer;
     Json(json!({
-        "issuer": i,
+        "issuer": iss,
         "authorization_endpoint": format!("{i}/authorize"),
         "token_endpoint": format!("{i}/token"),
         "jwks_uri": format!("{i}/jwks"),

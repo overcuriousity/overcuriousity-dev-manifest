@@ -1,5 +1,5 @@
 //! The timeline search language: `field:value`, `-field:value`, `"quoted values"`, bare words for the message.
-//! `AND` between terms is accepted and implied.
+//! `AND` between terms is accepted and implied. A token that starts with a quote is always text.
 
 use std::fmt;
 
@@ -33,7 +33,7 @@ impl fmt::Display for QueryError {
         match self {
             Self::UnknownField(name) => write!(
                 f,
-                "Unknown field '{name}'. Use host, user, event_id, level, source, process, verdict or pinned."
+                "Unknown field '{name}'. Use host, user, event_id, level, source, process, verdict or pinned. Put values that contain a colon in quotes."
             ),
             Self::UnclosedQuote => f.write_str("A quote is not closed."),
             Self::NotANumber(field) => write!(f, "{field} needs a number."),
@@ -49,31 +49,42 @@ impl fmt::Display for QueryError {
 
 impl std::error::Error for QueryError {}
 
-fn tokens(input: &str) -> Result<Vec<String>, QueryError> {
+struct Token {
+    text: String,
+    quoted_start: bool,
+}
+
+/// Inside quotes, `\"` and `\\` are escapes; any other backslash is literal, so Windows paths need no doubling.
+fn tokens(input: &str) -> Result<Vec<Token>, QueryError> {
     let mut out = Vec::new();
     let mut cur = String::new();
-    let mut quoted = false;
-    let mut had_quote = false;
-    for c in input.chars() {
+    let (mut quoted, mut started, mut quoted_start) = (false, false, false);
+    let mut chars = input.chars().peekable();
+    while let Some(c) = chars.next() {
         match c {
             '"' => {
+                quoted_start |= !started;
                 quoted = !quoted;
-                had_quote = true;
+                started = true;
             }
+            '\\' if quoted && matches!(chars.peek(), Some('"' | '\\')) => cur.extend(chars.next()),
             c if c.is_whitespace() && !quoted => {
-                if !cur.is_empty() || had_quote {
-                    out.push(std::mem::take(&mut cur));
+                if started {
+                    out.push(Token { text: std::mem::take(&mut cur), quoted_start });
                 }
-                had_quote = false;
+                (started, quoted_start) = (false, false);
             }
-            c => cur.push(c),
+            c => {
+                cur.push(c);
+                started = true;
+            }
         }
     }
     if quoted {
         return Err(QueryError::UnclosedQuote);
     }
-    if !cur.is_empty() || had_quote {
-        out.push(cur);
+    if started {
+        out.push(Token { text: cur, quoted_start });
     }
     Ok(out)
 }
@@ -81,34 +92,37 @@ fn tokens(input: &str) -> Result<Vec<String>, QueryError> {
 pub fn parse(input: &str) -> Result<Query, QueryError> {
     let mut terms = Vec::new();
     for tok in tokens(input)? {
-        if tok == "AND" {
+        if tok.text == "AND" && !tok.quoted_start {
             continue;
         }
-        if tok.chars().count() > MAX_VALUE {
+        if tok.text.chars().count() > MAX_VALUE {
             return Err(QueryError::TooLong);
         }
-        let (negate, body) = match tok.strip_prefix('-') {
-            Some(rest) if rest.contains(':') => (true, rest),
-            _ => (false, tok.as_str()),
-        };
-        let term = match body.split_once(':') {
-            Some((name, value)) if !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') => {
-                let field = FIELDS
-                    .iter()
-                    .find(|f| f.eq_ignore_ascii_case(name))
-                    .copied()
-                    .ok_or_else(|| QueryError::UnknownField(name.to_owned()))?;
-                validate(field, value)?;
-                Term::Field { field, value: value.to_owned(), negate }
-            }
-            _ => Term::Text(tok.clone()),
-        };
-        terms.push(term);
+        terms.push(if tok.quoted_start { Term::Text(tok.text) } else { field_term(tok.text)? });
         if terms.len() > MAX_TERMS {
             return Err(QueryError::TooMany);
         }
     }
     Ok(Query { terms })
+}
+
+fn field_term(tok: String) -> Result<Term, QueryError> {
+    let (negate, body) = match tok.strip_prefix('-') {
+        Some(rest) if rest.contains(':') => (true, rest),
+        _ => (false, tok.as_str()),
+    };
+    match body.split_once(':') {
+        Some((name, value)) if !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') => {
+            let field = FIELDS
+                .iter()
+                .find(|f| f.eq_ignore_ascii_case(name))
+                .copied()
+                .ok_or_else(|| QueryError::UnknownField(name.to_owned()))?;
+            validate(field, value)?;
+            Ok(Term::Field { field, value: value.to_owned(), negate })
+        }
+        _ => Ok(Term::Text(tok)),
+    }
 }
 
 fn validate(field: &'static str, value: &str) -> Result<(), QueryError> {
@@ -122,17 +136,24 @@ fn validate(field: &'static str, value: &str) -> Result<(), QueryError> {
     }
 }
 
-fn quote(v: &str) -> String {
-    if v.is_empty() || v.chars().any(char::is_whitespace) { format!("\"{v}\"") } else { v.to_owned() }
+fn quoted(v: &str) -> String {
+    format!("\"{}\"", v.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Term::Field { field, value, negate } => {
-                write!(f, "{}{field}:{}", if *negate { "-" } else { "" }, quote(value))
+                let plain = !value.is_empty() && !value.contains(|c: char| c.is_whitespace() || c == '"');
+                let v = if plain { value.clone() } else { quoted(value) };
+                write!(f, "{}{field}:{v}", if *negate { "-" } else { "" })
             }
-            Term::Text(t) => f.write_str(&quote(t)),
+            Term::Text(t) => {
+                let plain = !t.is_empty()
+                    && !t.starts_with('-')
+                    && !t.contains(|c: char| c.is_whitespace() || c == '"' || c == ':');
+                f.write_str(&if plain && t != "AND" { t.clone() } else { quoted(t) })
+            }
         }
     }
 }

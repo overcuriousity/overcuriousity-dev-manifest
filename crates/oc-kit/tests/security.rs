@@ -153,3 +153,11 @@ async fn a_cross_site_post_is_rejected_even_when_fetch_metadata_is_forged_same_o
         .unwrap();
     assert_eq!(status(local(), r).await, StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn rejections_carry_the_base_headers_too() {
+    let r = Request::get("/").header(header::HOST, "evil.example").body(Body::empty()).unwrap();
+    let res = local().oneshot(r).await.unwrap();
+    assert_eq!(res.status(), StatusCode::MISDIRECTED_REQUEST);
+    assert_eq!(res.headers()["x-content-type-options"], "nosniff");
+}

@@ -46,13 +46,13 @@ pub(crate) struct Ctx {
 pub fn secure(router: Router, dep: &Deployment, proxies: &[IpNet], limits: Limits) -> Router {
     let ctx = Arc::new(Ctx { dep: dep.clone(), proxies: proxies.to_vec() });
     router
-        .layer(from_fn_with_state(ctx.clone(), headers::security_headers))
         .layer(CompressionLayer::new())
         .layer(RequestBodyLimitLayer::new(limits.body_bytes))
         .layer(axum::extract::DefaultBodyLimit::disable())
         .layer(from_fn_with_state(ctx.clone(), origin::origin_check))
-        .layer(from_fn_with_state(ctx, origin::host_check))
+        .layer(from_fn_with_state(ctx.clone(), origin::host_check))
         .layer(TimeoutLayer::with_status_code(axum::http::StatusCode::REQUEST_TIMEOUT, limits.timeout))
+        .layer(from_fn_with_state(ctx, headers::security_headers))
         .layer(TraceLayer::new_for_http())
         .layer(SetSensitiveRequestHeadersLayer::new([header::AUTHORIZATION, header::COOKIE]))
 }

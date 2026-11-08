@@ -26,10 +26,19 @@ fn bare_words_match_message_and_empty_input_matches_everything() {
 fn errors_are_one_sentence() {
     assert_eq!(
         parse("foo:bar").unwrap_err().to_string(),
-        "Unknown field 'foo'. Use host, user, event_id, level, source, process, verdict or pinned."
+        "Unknown field 'foo'. Use host, user, event_id, level, source, process, verdict or pinned. Put values that contain a colon in quotes."
     );
     assert_eq!(parse(r#"user:"x"#).unwrap_err().to_string(), "A quote is not closed.");
     assert_eq!(parse("event_id:abc").unwrap_err().to_string(), "event_id needs a number.");
     let many = (0..33).map(|i| format!("w{i}")).collect::<Vec<_>>().join(" ");
     assert_eq!(parse(&many).unwrap_err().to_string(), "Use at most 32 search terms.");
+}
+
+#[test]
+fn quoted_values_with_colons_are_text_and_quotes_round_trip() {
+    assert_eq!(parse(r#""C:\Windows\System32""#).unwrap().terms, vec![Term::Text(r"C:\Windows\System32".into())]);
+    let host = Term::Field { field: "host", value: r#"we"ird\host"#.into(), negate: false };
+    let q = demo::domain::query::Query { terms: vec![host.clone(), Term::Text("a:b".into())] };
+    assert_eq!(parse(&q.to_string()).unwrap().terms, q.terms);
+    assert!(parse("http://x").unwrap_err().to_string().contains("Put values that contain a colon in quotes."));
 }

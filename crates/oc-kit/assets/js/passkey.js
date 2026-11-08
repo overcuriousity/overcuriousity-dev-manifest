@@ -25,7 +25,13 @@ async function register(button) {
   const label = button.dataset.name || "Passkey";
   const res = await postJSON(`/auth/passkeys/register/finish?name=${encodeURIComponent(label)}`, cred.toJSON());
   const list = document.getElementById("oc-passkey-list");
-  if (list) list.outerHTML = await res.text();
+  if (list) {
+    list.outerHTML = await res.text();
+    // Markup inserted outside htmx needs htmx and this module to bind it.
+    const fresh = document.getElementById("oc-passkey-list");
+    window.htmx?.process(fresh);
+    init(fresh);
+  }
   notify("Passkey added");
 }
 

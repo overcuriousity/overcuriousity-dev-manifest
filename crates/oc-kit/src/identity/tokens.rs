@@ -46,7 +46,7 @@ pub async fn mint(
     }
     let id = random(ID_LEN);
     let secret = random(SECRET_LEN);
-    let hash = password::hash(&secret)?;
+    let hash = password::hash_blocking(&secret).await?;
     sqlx::query!(
         "INSERT INTO oc_api_tokens (id, user_id, name, secret_hash, created_at) VALUES (?, ?, ?, ?, ?)",
         id,
@@ -79,7 +79,7 @@ pub async fn verify(
     .fetch_optional(pool)
     .await?;
     let Some(row) = row else { return Ok(None) };
-    if !password::verify(secret, &row.secret_hash) {
+    if !password::verify_blocking(secret, Some(&row.secret_hash)).await {
         return Ok(None);
     }
     let stale = now - time::Duration::minutes(1);

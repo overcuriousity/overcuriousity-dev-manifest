@@ -50,6 +50,8 @@ struct Pending {
 
 impl Oidc {
     pub fn new(cfg: &OidcConfig, dep: &Deployment) -> Result<Arc<Self>, OcError> {
+        url::Url::parse(&cfg.issuer)
+            .map_err(|_| OcError::Config(format!("auth.oidc.issuer is not a URL: {}.", cfg.issuer)))?;
         let http = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .timeout(Duration::from_secs(10))
@@ -69,8 +71,7 @@ impl Oidc {
     async fn client(&self) -> Result<&(Client, String), OcError> {
         self.client
             .get_or_try_init(|| async {
-                let issuer = IssuerUrl::new(self.cfg.issuer.as_str().trim_end_matches('/').to_owned())
-                    .map_err(OcError::internal)?;
+                let issuer = IssuerUrl::new(self.cfg.issuer.clone()).map_err(OcError::internal)?;
                 let meta = CoreProviderMetadata::discover_async(issuer, &self.http).await.map_err(|e| {
                     tracing::warn!(error = %e, "OIDC discovery failed");
                     OcError::BadRequest("The sign-in provider is not reachable. Try again later.".into())
@@ -123,7 +124,7 @@ impl Oidc {
             }
         };
         let mut v = Validation::new(header.alg);
-        v.set_issuer(&[self.cfg.issuer.as_str().trim_end_matches('/')]);
+        v.set_issuer(&[self.cfg.issuer.as_str()]);
         v.set_audience(&[self.cfg.client_id.as_str(), self.resource.as_str()]);
         #[derive(Deserialize)]
         struct Claims {
@@ -140,7 +141,7 @@ impl Oidc {
     }
 
     pub fn issuer(&self) -> &str {
-        self.cfg.issuer.as_str().trim_end_matches('/')
+        &self.cfg.issuer
     }
 }
 

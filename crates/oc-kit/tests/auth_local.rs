@@ -83,3 +83,32 @@ async fn the_eleventh_rapid_sign_in_attempt_is_rate_limited() {
     }
     assert_eq!(last, StatusCode::TOO_MANY_REQUESTS);
 }
+
+#[test]
+fn next_rejects_control_characters_and_backslashes_that_browsers_turn_into_other_hosts() {
+    use oc_kit::auth::safe_next;
+    for bad in ["/\t/evil.example", "/\\evil.example", "/x\\y", "/\u{1}", "/ /evil", "/\u{7f}"] {
+        assert_eq!(safe_next(bad), "/", "{bad:?}");
+    }
+    assert_eq!(safe_next("/cases/1/timeline?q=host%3Aws-01#x"), "/cases/1/timeline?q=host%3Aws-01#x");
+}
+
+#[tokio::test]
+async fn a_tab_in_next_does_not_redirect_off_site() {
+    let (_d, _st, app) = app().await;
+    let res = send(&app, post_form("/auth/sign-in", "username=ada&password=pw-ada-123&next=/%09/evil.example")).await;
+    assert_eq!(res.headers()[header::LOCATION], "/");
+}
+
+#[tokio::test]
+async fn an_htmx_request_without_a_session_is_sent_to_sign_in() {
+    let (_d, _st, app) = app().await;
+    let r = req_get("/private")
+        .header("hx-request", "true")
+        .header("hx-current-url", "http://localhost:8080/cases/1/timeline?q=x")
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let res = send(&app, r).await;
+    assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(res.headers()["hx-redirect"], "/auth/sign-in?next=%2Fcases%2F1%2Ftimeline%3Fq%3Dx");
+}

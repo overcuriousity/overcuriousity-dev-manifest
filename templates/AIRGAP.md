@@ -53,6 +53,15 @@ openssl req -x509 -newkey rsa:3072 -sha256 -days 825 -nodes \
   -subj "/CN=app.lan" -addext "subjectAltName=DNS:app.lan"
 ```
 
+Keep secrets out of `config.toml`; it is world-readable so the service's dynamic user can read it. Put a secret in a root-only file and hand it to the service as a credential:
+
+```sh
+printf '%s' 'the-client-secret' | install -m 0600 /dev/stdin /etc/app/oidc-secret
+systemctl edit app   # add: [Service] LoadCredential=oidc-secret:/etc/app/oidc-secret
+```
+
+and in `config.toml`: `client_secret = "file:///run/credentials/app.service/oidc-secret"`.
+
 Then:
 1. Copy `nginx.conf` from the bundle (also in `~/.local/share/app/` or `/usr/local/share/app/`) to `/etc/nginx/conf.d/app.conf`. Replace `journal.example.org` and the certificate paths, then reload nginx.
 2. Set the address users type in `/etc/app/config.toml`:
@@ -75,8 +84,11 @@ The archive's `.cargo/config.toml` points Cargo at the bundled `vendor/` directo
 
 ## First start
 
-On first start the app creates the user `app` and prints its password once to the log (`journalctl -u app`). Add more accounts with:
+On first start the app creates the user `app` and prints its password once to the log (`journalctl -u app`).
+
+For a user install, add more accounts with `app user add <name> [--admin]`. For the system service, run the command inside the service's sandbox, so it uses the service's data directory and user:
 
 ```sh
-app --config /etc/app/config.toml user add <name> [--admin]
+systemd-run --pty --wait -p DynamicUser=yes -p StateDirectory=app \
+  /usr/local/bin/app --config /etc/app/config.toml user add <name> [--admin]
 ```

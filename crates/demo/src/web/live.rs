@@ -125,9 +125,14 @@ async fn new_rows(
     let newer = events::newer_than(&st.pool, id, &q, lq.after, 500).await?;
     let max = events::max_id(&st.pool, id).await?.max(lq.after);
     let rows = render(&Rows { case_id: id, events: &newer, q: q.to_string(), next: None });
-    let after = Html(format!(
-        "<template><input type=\"hidden\" id=\"after\" name=\"after\" value=\"{max}\" hx-swap-oob=\"true\"></template>"
-    ));
-    let clear = Html("<template><div id=\"oc-ingest-notice\" hx-swap-oob=\"innerHTML\"></div></template>".into());
-    Ok(Html::join([rows, after, clear]).into_response())
+    Ok(Html::join([rows, reset_cursor(max)]).into_response())
+}
+
+/// Out-of-band updates for a table response: the newest id seen, and an empty new-events notice.
+/// Wrapped in <template> because the response is parsed in a table context.
+pub fn reset_cursor(after: i64) -> Html {
+    Html(format!(
+        "<template><input type=\"hidden\" id=\"after\" name=\"after\" value=\"{after}\" hx-swap-oob=\"true\"></template>\
+         <template><div id=\"oc-ingest-notice\" hx-swap-oob=\"innerHTML\"></div></template>"
+    ))
 }

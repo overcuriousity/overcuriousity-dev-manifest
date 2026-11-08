@@ -6,6 +6,7 @@
       <label for="{{ id }}-name">Type {{ name_to_type }} to confirm</label>
       <input class="oc-input" id="{{ id }}-name" name="name" autocomplete="off" autocapitalize="off" spellcheck="false" required>
     </div>
+    <div id="{{ id }}-error" aria-live="polite"></div>
     <div class="oc-dialog__actions">
       <button type="button" class="oc-btn" data-oc-dialog-close>Cancel</button>
       <button type="submit" class="oc-btn oc-btn--danger" disabled>{{ action_label }}</button>

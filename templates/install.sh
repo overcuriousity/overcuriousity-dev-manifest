@@ -54,8 +54,9 @@ if [ "$system" -eq 1 ]; then
   install -m 0644 "$app.service" "/etc/systemd/system/$app.service"
   mkdir -p "/etc/$app"
   if [ ! -f "/etc/$app/config.toml" ]; then
-    install -m 0640 config.example.toml "/etc/$app/config.toml"
-    echo "Wrote /etc/$app/config.toml; set public_url before starting."
+    # World-readable because the service runs as a dynamic user; secrets go through LoadCredential=.
+    install -m 0644 config.example.toml "/etc/$app/config.toml"
+    echo "Wrote /etc/$app/config.toml; set public_url before starting. Keep secrets out of it (see AIRGAP.md)."
   fi
   echo "Installed /etc/systemd/system/$app.service. Start it with: systemctl daemon-reload && systemctl enable --now $app"
 fi

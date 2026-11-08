@@ -309,7 +309,13 @@ async fn rows(
     };
     let cursor = tq.cursor.as_deref().map(Cursor::decode).transpose()?;
     let page = events::search(&st.pool, id, &q, cursor, PAGE_SIZE).await?;
-    Ok(render(&Rows { case_id: id, events: &page.items, q: q.to_string(), next: page.next_cursor }).into_response())
+    let rows = render(&Rows { case_id: id, events: &page.items, q: q.to_string(), next: page.next_cursor });
+    if cursor.is_some() {
+        return Ok(rows.into_response());
+    }
+    // A first page replaces the table (resync), so the new-events cursor restarts from the newest row.
+    let after = events::max_id(&st.pool, id).await?;
+    Ok(Html::join([rows, super::live::reset_cursor(after)]).into_response())
 }
 
 async fn facets(

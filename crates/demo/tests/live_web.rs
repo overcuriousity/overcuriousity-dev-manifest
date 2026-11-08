@@ -73,3 +73,16 @@ async fn the_histogram_is_an_accessible_svg_without_literal_colours() {
     );
     assert!(oc_check::check_html(&svg).is_empty(), "{:?}", oc_check::check_html(&svg));
 }
+
+#[tokio::test]
+async fn a_resync_reload_moves_the_new_events_cursor() {
+    let a = app().await;
+    let (mine, _) = ids(&a).await;
+    let last = add(&a, mine, "ws-96").await;
+    let rows = body(a.htmx_get(&format!("/cases/{mine}/timeline/rows?q=")).await).await;
+    assert!(
+        rows.contains(&format!("id=\"after\" name=\"after\" value=\"{last}\" hx-swap-oob=\"true\"")),
+        "{}",
+        &rows[rows.len().saturating_sub(400)..]
+    );
+}

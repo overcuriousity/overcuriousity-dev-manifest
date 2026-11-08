@@ -60,4 +60,5 @@ fn the_nginx_template_adds_no_headers_and_streams_sse() {
     let conf = read("templates/deploy/nginx.conf");
     assert!(!conf.contains("add_header"));
     assert!(conf.contains("proxy_buffering off") && conf.contains("X-Forwarded-Proto"));
+    assert!(conf.contains("proxy_set_header Host $http_host;"), "Host must keep a non-default port");
 }

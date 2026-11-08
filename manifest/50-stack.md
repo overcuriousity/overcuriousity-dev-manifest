@@ -16,7 +16,7 @@
 | Releases | static musl binaries for x86_64 and aarch64 |
 
 - MUST: depend on `oc-kit` by CalVer tag: `oc-kit = { git = "https://github.com/overcuriousity/overcuriousity-dev-manifest", tag = "v2026.11.0" }`.
-- MUST: htmx runs with this config: `{"allowEval":false,"allowScriptTags":false,"includeIndicatorStyles":false,"selfRequestsOnly":true,"attributesToSettle":["class","width","height"]}`. *Why: anything else needs eval or writes inline styles under the strict CSP.*
+- MUST: htmx runs with this config: `{"allowEval":false,"allowScriptTags":false,"includeIndicatorStyles":false,"selfRequestsOnly":true,"attributesToSettle":["class","width","height"],"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true},{"code":"[45]..","swap":false,"error":true}]}`. *Why: anything else needs eval or writes inline styles under the strict CSP; 422 swaps so validation messages appear in place.*
 - NEVER: `hx-on` or htmx event filters (both need eval).
 - MUST: wrap table elements in out-of-band swaps in `<template>`. *Why: a bare `<td>` outside a table is dropped by the HTML parser.*
 - MUST: SSE events always carry a data line (`oc_kit::sse` does this). *Why: browsers drop events without data.*

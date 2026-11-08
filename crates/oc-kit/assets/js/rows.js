@@ -46,17 +46,21 @@ function openMenu(tr, x, y) {
   menu = document.createElement("ul");
   menu.className = "oc-menu";
   menu.setAttribute("role", "menu");
+  // Items forward to the row's own buttons, so relative htmx targets like "closest tr" still resolve.
   for (const a of actions) {
     const li = document.createElement("li");
-    const item = a.cloneNode(true);
-    item.className = "";
+    const item = document.createElement("button");
+    item.type = "button";
     item.setAttribute("role", "menuitem");
-    item.removeAttribute("data-oc-reveal");
-    item.removeAttribute("data-oc-tip");
+    const icon = a.querySelector("svg");
+    if (icon) item.append(icon.cloneNode(true));
     const label = document.createElement("span");
     label.textContent = a.getAttribute("aria-label");
     item.append(label);
-    item.addEventListener("click", closeMenu);
+    item.addEventListener("click", () => {
+      closeMenu();
+      a.click();
+    });
     li.append(item);
     menu.append(li);
   }
@@ -69,7 +73,6 @@ function openMenu(tr, x, y) {
     menu.style.setProperty("left", `${Math.min(x, window.innerWidth - menu.offsetWidth - 8)}px`);
     menu.style.setProperty("top", `${Math.min(y, window.innerHeight - menu.offsetHeight - 8)}px`);
   }
-  window.htmx?.process(menu);
   menu.querySelector("button")?.focus();
 }
 

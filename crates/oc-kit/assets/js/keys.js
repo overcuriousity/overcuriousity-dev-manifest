@@ -1,3 +1,9 @@
+// Letter shortcuts are shown in capitals but fire without Shift; other keys match exactly.
+export function matchesShortcut(shortcut, key) {
+  if (/^[A-Za-z]$/.test(shortcut)) return key.toLowerCase() === shortcut.toLowerCase();
+  return key === shortcut;
+}
+
 export function shouldIgnore(target) {
   if (!target) return false;
   return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable === true;
@@ -46,7 +52,7 @@ if (typeof document !== "undefined") {
     const scope = document.querySelector("tr.is-selected") ?? document;
     const match = (root) =>
       [...root.querySelectorAll(`[data-oc-shortcut]`)].find(
-        (el) => el.dataset.ocShortcut === e.key && el.tagName !== "INPUT" && (visible(el) || root !== document),
+        (el) => matchesShortcut(el.dataset.ocShortcut, e.key) && el.tagName !== "INPUT" && (visible(el) || root !== document),
       );
     const el = match(scope) ?? match(document);
     if (el) {

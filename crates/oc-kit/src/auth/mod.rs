@@ -47,9 +47,11 @@ impl AuthState {
 }
 
 /// Only same-origin absolute paths are followed after sign-in.
+/// Browsers drop tabs and newlines and read `\` as `/` while parsing URLs, so any of them could turn
+/// a local path into `//other.host`.
 pub fn safe_next(next: &str) -> &str {
     let ok =
-        next.starts_with('/') && !next.starts_with("//") && !next.starts_with("/\\") && !next.contains(['\r', '\n']);
+        next.starts_with('/') && !next.starts_with("//") && !next.bytes().any(|b| b <= 0x20 || b == 0x7f || b == b'\\');
     if ok { next } else { "/" }
 }
 

@@ -14,7 +14,7 @@ use support::*;
 async fn app(idp: Option<&Idp>, auto: bool) -> (tempfile::TempDir, oc_kit::auth::AuthState, Router) {
     let mut cfg = OcConfig::default();
     cfg.auth.oidc = idp.map(|i| OidcConfig {
-        issuer: i.issuer.parse().unwrap(),
+        issuer: i.issuer.clone(),
         client_id: "app".into(),
         client_secret: Secret::new("s"),
         scopes: vec!["openid".into()],
@@ -114,4 +114,20 @@ async fn oidc_routes_and_resource_metadata_are_absent_without_config() {
             "{uri}"
         );
     }
+}
+
+#[tokio::test]
+async fn an_issuer_with_a_trailing_slash_works_for_sign_in_and_bearer_tokens() {
+    let idp = fake_idp::start_at("/realm/").await;
+    let (_d, st, app) = app(Some(&idp), true).await;
+    let res = callback(&app, "sub-7").await;
+    assert_eq!(res.status(), StatusCode::SEE_OTHER, "{:?}", body(res).await);
+    let user = oc_kit::identity::users::by_username(&st.pool, "tp").await.unwrap().unwrap();
+    let token = idp.id_token("sub-7", "n", "app");
+    let r = send(
+        &app,
+        req_get("/me").header(header::AUTHORIZATION, format!("Bearer {token}")).body(Body::empty()).unwrap(),
+    )
+    .await;
+    assert_eq!(body(r).await, user.display_name);
 }

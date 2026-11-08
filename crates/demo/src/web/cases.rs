@@ -31,7 +31,9 @@ impl CaseList {
             text: "This deletes the case, its events and notes permanently.".into(),
             name_to_type: c.name.clone(),
             action_label: "Purge case".into(),
-            post: HxAttrs::post(format!("/cases/{}/purge", c.id)),
+            post: HxAttrs::post(format!("/cases/{}/purge", c.id))
+                .target(format!("#purge-{}-error", c.id))
+                .swap("innerHTML"),
         }
     }
 }
@@ -62,7 +64,10 @@ async fn purge(
             h.insert("hx-redirect", HeaderValue::from_static("/cases"));
             Ok((h, StatusCode::OK).into_response())
         }
-        Err(e @ OcError::Unprocessable(_)) => Ok((StatusCode::UNPROCESSABLE_ENTITY, e.to_string()).into_response()),
+        Err(e @ OcError::Unprocessable(_)) => {
+            Ok((StatusCode::UNPROCESSABLE_ENTITY, oc_kit::ui::Html::from(oc_kit::ui::Notice::danger(e.to_string())))
+                .into_response())
+        }
         Err(e) => Err(e),
     }
 }

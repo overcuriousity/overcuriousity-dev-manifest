@@ -38,7 +38,8 @@ async fn purge_requires_the_exact_case_name() {
     let case = demo::domain::cases::list(&a.st.pool).await.unwrap()[0].clone();
     let res = a.post(&format!("/cases/{}/purge", case.id), "name=nope").await;
     assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(body(res).await, "Type the case name exactly.");
+    let msg = body(res).await;
+    assert!(msg.contains("oc-notice--danger") && msg.contains("Type the case name exactly."), "{msg}");
     let res = a.post(&format!("/cases/{}/purge", case.id), &format!("name={}", case.name.replace(' ', "+"))).await;
     assert_eq!(res.headers()["hx-redirect"], "/cases");
     assert!(demo::domain::cases::get(&a.st.pool, case.id).await.is_err());
