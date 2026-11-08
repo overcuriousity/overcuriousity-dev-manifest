@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT theme, density FROM oc_preferences WHERE user_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "theme",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "density",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "48e44f9e2e288940f20168eb3ae6165a61eb9b19de89c47bcf0b6df90243616e"
+}
