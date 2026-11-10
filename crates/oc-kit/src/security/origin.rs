@@ -33,7 +33,8 @@ pub(super) async fn origin_check(State(ctx): State<Arc<Ctx>>, req: Request, next
     }
     let h = req.headers();
     // `Referrer-Policy: no-referrer` makes browsers send `Origin: null` on same-origin form posts,
-    // so "null" counts as absent and Sec-Fetch-Site decides.
+    // so "null" counts as absent and Sec-Fetch-Site decides. Plain http has no Sec-Fetch-Site, so
+    // there the headers layer sends `same-origin` and the real Origin decides.
     let origin = h.get(header::ORIGIN).and_then(|v| v.to_str().ok()).filter(|o| *o != "null");
     let site = h.get("sec-fetch-site").and_then(|v| v.to_str().ok());
     let allowed = match (origin, site) {

@@ -1,9 +1,9 @@
 # overcuriousity dev manifest
 
-The shared rules for the apps I build: stack, security, visual identity, interaction and ops, written so an AI coding agent can follow them. It comes with the code that implements them.
+The shared rules for the apps I build: stack, security, visual identity, interaction and ops, written so an AI coding agent can follow them. It is a reference first: the crates show one way to implement the rules, and apps need not depend on them.
 
 - **`manifest/`**: the rules, terse, each with its reason. Start at `manifest/00-principles.md`.
-- **`crates/oc-kit/`**: a Rust crate new apps depend on by tag. It provides design tokens and CSS, fonts and icons, htmx, the security layer, sign-in (password, passkeys, OIDC), API tokens, preferences, live updates and page components.
+- **`crates/oc-kit/`**: the reference implementation, a Rust crate an app may read, copy from or depend on by tag. It covers design tokens and CSS, fonts and icons, htmx, the security layer, sign-in (password, passkeys, OIDC), API tokens, preferences, live updates and page components.
 - **`crates/oc-check/`**: a lint that fails CI on literal colours, inline styles and scripts, native dialogs, CDN URLs and an unsafe CSP.
 - **`crates/demo/`**: an incident journal that shows every component in both layout profiles: an everyday notes app and a data-heavy timeline workbench.
 - **`templates/`**: files copied into each new repo: CI, releases with an offline bundle, Dependabot, deny rules, systemd unit, nginx, installer.

@@ -112,3 +112,26 @@ async fn an_htmx_request_without_a_session_is_sent_to_sign_in() {
     assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
     assert_eq!(res.headers()["hx-redirect"], "/auth/sign-in?next=%2Fcases%2F1%2Ftimeline%3Fq%3Dx");
 }
+
+#[tokio::test]
+async fn plain_http_uses_an_unprefixed_cookie_without_secure_and_turns_passkeys_off() {
+    let cfg = oc_kit::config::OcConfig {
+        public_url: Some("http://notes.lan".parse().unwrap()),
+        allow_plain_http: true,
+        ..oc_kit::config::OcConfig::default()
+    };
+    let (_d, st) = state_with(cfg).await;
+    assert!(st.webauthn.is_none() && !st.cfg.passkeys);
+    add_user(&st.pool, "ada", "pw-ada-123").await;
+    let app = wrap(&st, Router::new().nest("/auth", router(st.clone())).with_state(st.clone())).await;
+    let req = axum::http::Request::post("/auth/sign-in")
+        .header(header::HOST, "notes.lan")
+        .header(header::ORIGIN, "http://notes.lan")
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(axum::body::Body::from("username=ada&password=pw-ada-123&next=/"))
+        .unwrap();
+    let res = send(&app, req).await;
+    assert_eq!(res.status(), StatusCode::SEE_OTHER);
+    let c = res.headers()[header::SET_COOKIE].to_str().unwrap();
+    assert!(c.starts_with("test-session=") && c.contains("HttpOnly") && !c.contains("Secure"), "{c}");
+}

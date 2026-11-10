@@ -1,6 +1,6 @@
 # 20 · Components
 
-Every component exists in `oc-kit` (`crates/oc-kit/src/ui/`) and appears in the demo; see the inventory in `crates/demo/README.md`.
+Every component has a reference implementation in `crates/oc-kit/src/ui/` and appears in the demo; see the inventory in `crates/demo/README.md`.
 
 ## Links and buttons
 

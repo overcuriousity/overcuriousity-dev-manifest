@@ -29,7 +29,7 @@ Warm paper in light mode, cool ink in dark mode, one muted accent: blue in light
 | `--color-accent-muted` | 25 % | 35 % |
 
 - MUST: primary text ≥ 7:1, all other text ≥ 4.5:1, meaningful non-text UI (focus ring, selection frame, form-field borders) ≥ 3:1. *Why: WCAG 1.4.3 and 1.4.11; 7:1 supports long reading sessions.*
-- MUST: keep the contrast unit test green (`crates/oc-kit/tests/contrast.rs`). It checks every documented pair in both themes.
+- MUST: a contrast unit test checks every documented pair in both themes (reference: `crates/oc-kit/tests/contrast.rs`).
 - MUST: muted text switches to `fg-secondary` on hovered and selected rows. *Why: muted is 4.4:1 (light) and 4.0:1 (dark) on `bg-hover`.*
 - MUST: form-field borders use `border-control`; every other border stays a soft hairline. *Why: `border-strong` is only about 1.6:1.*
 - MUST: status is symbol + colour (✓ success, ⚠ warning, ✗ danger, i info), never colour alone. *Why: WCAG 1.4.1; about 8 % of men have a red-green colour vision deficiency.*
@@ -68,7 +68,7 @@ Warm paper in light mode, cool ink in dark mode, one muted accent: blue in light
 - MUST: separate with borders and hairlines. The one shadow (`--shadow-float`) is for floating layers only.
 - MUST: z-index values come from the token scale.
 - MUST: Lucide icons, inline SVG, `aria-hidden`, `currentColor`, with a constant rendered stroke of 1.4 px (`vector-effect: non-scaling-stroke`). Sizes: 14 px in rows, 16 px in toolbars, 20 px in the phone tab bar.
-- MUST: one icon per meaning, from the fixed vocabulary in `crates/oc-kit/src/ui/icons.rs`. Add new meanings there; never improvise.
+- MUST: one icon per meaning, from a fixed vocabulary (reference: `crates/oc-kit/src/ui/icons.rs`). Add new meanings to the vocabulary; never improvise.
 - MUST: motion lasts 120 ms (hover, press) or 160–180 ms (panels), ease-out, and only explains what moved. Everything stops under `prefers-reduced-motion`.
 - NEVER: emoji as icons; icons inside coloured rounded tiles.
 

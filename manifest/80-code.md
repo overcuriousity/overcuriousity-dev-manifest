@@ -8,6 +8,6 @@
 - MUST: configuration is a TOML file plus `APP__SECTION__KEY` environment overrides; secrets may come from files (`*_FILE` or `file://`); `config.example.toml` is committed; app settings live under `[app]`.
 - MUST: an optional subsystem that is not configured shows no UI entry point.
 - MUST: test names read as sentences (`a_deleted_note_can_be_restored_within_30_days`); tests use real SQLite, not mocks.
-- MUST: keep the contrast test, the OpenAPI/route parity test and a rendered-page `oc-check` test (`oc_check::check_html_for`).
+- MUST: keep the contrast test, the OpenAPI/route parity test and a test that checks rendered pages against the CSP rules (`oc_check::check_html_for` does this).
 - MUST: rustfmt and clippy with the lint table from `templates/lints.toml`.
 - NEVER: commit agent working files (`.superpowers/`, `.claude/`, generated specs, plans, scratch). `docs/` holds reference documentation only.
