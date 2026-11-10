@@ -14,6 +14,8 @@ use crate::error::OcError;
 #[serde(deny_unknown_fields, default)]
 pub struct OcConfig {
     pub public_url: Option<Url>,
+    /// Accept an `http://` `public_url` on a non-loopback host, for a LAN without TLS.
+    pub allow_plain_http: bool,
     pub bind: SocketAddr,
     pub trusted_proxies: Vec<IpNet>,
     pub data_dir: Option<PathBuf>,
@@ -26,6 +28,7 @@ impl Default for OcConfig {
     fn default() -> Self {
         Self {
             public_url: None,
+            allow_plain_http: false,
             bind: SocketAddr::from(([127, 0, 0, 1], 8080)),
             trusted_proxies: ["127.0.0.1/32", "::1/128"].iter().filter_map(|s| s.parse().ok()).collect(),
             data_dir: None,
@@ -137,7 +140,11 @@ pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, Oc
 #[derive(Debug, Clone)]
 pub struct Deployment {
     pub origin: String,
+    /// The public URL is https.
     pub secure: bool,
+    /// Browsers treat the origin as secure (https or loopback), so `__Host-` cookies,
+    /// passkeys and `Sec-Fetch-*` headers work.
+    pub secure_context: bool,
     pub rp_id: String,
     pub public_url: Url,
     port: u16,
@@ -203,6 +210,7 @@ impl OcConfig {
                 public_url: Url::parse(&origin).map_err(OcError::internal)?,
                 origin,
                 secure: false,
+                secure_context: true,
                 rp_id: "localhost".into(),
                 port: self.bind.port(),
                 loopback_dev: true,
@@ -213,14 +221,18 @@ impl OcConfig {
             host == "localhost" || host.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback()) || host == "[::1]";
         match url.scheme() {
             "https" => {}
-            "http" if is_loopback_host => {}
+            "http" if is_loopback_host || self.allow_plain_http => {}
             _ => {
-                return Err(OcError::Config("public_url must be https unless it is localhost.".into()));
+                return Err(OcError::Config(
+                    "public_url must be https unless it is localhost or allow_plain_http is set.".into(),
+                ));
             }
         }
+        let secure = url.scheme() == "https";
         Ok(Deployment {
             origin: url.origin().ascii_serialization(),
-            secure: url.scheme() == "https",
+            secure,
+            secure_context: secure || is_loopback_host,
             rp_id: host,
             public_url: url.clone(),
             port: url.port_or_known_default().unwrap_or(443),

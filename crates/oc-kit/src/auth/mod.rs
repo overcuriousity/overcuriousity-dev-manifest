@@ -35,11 +35,15 @@ impl AuthState {
     pub async fn new(
         pool: SqlitePool,
         dep: Deployment,
-        cfg: AuthConfig,
+        mut cfg: AuthConfig,
         app: &'static str,
         branding: Branding,
         token_prefix: &'static str,
     ) -> Result<Self, OcError> {
+        if cfg.passkeys && !dep.secure_context {
+            tracing::warn!("passkeys are off: browsers offer them only over https or on localhost");
+            cfg.passkeys = false;
+        }
         let webauthn = if cfg.passkeys { Some(passkeys::build(&dep, branding.app_name)?) } else { None };
         let oidc = cfg.oidc.as_ref().map(|o| oidc::Oidc::new(o, &dep)).transpose()?;
         Ok(Self { pool, dep, cfg, app, branding, token_prefix, webauthn, oidc })

@@ -22,7 +22,7 @@ pub async fn build(cfg: &OcConfig, pool: sqlx::SqlitePool) -> Result<(Router, Ap
     let auth = AuthState::new(pool.clone(), dep.clone(), cfg.auth.clone(), APP, BRANDING, APP).await?;
     let (assets, assets_router) = (self::assets(), assets_router());
     let st = AppState { pool: pool.clone(), auth: auth.clone(), ingest: Broadcaster::new(256), assets };
-    let sessions = oc_kit::session::session_layer(&pool, APP).await?;
+    let sessions = oc_kit::session::session_layer(&pool, APP, &dep).await?;
     let app = Router::new()
         .route("/healthz", get(health))
         .route("/", get(|| async { Redirect::to("/notes") }))

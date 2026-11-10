@@ -14,7 +14,7 @@ https://github.com/overcuriousity/overcuriousity-dev-manifest/tree/v2026.11.1/ma
 ## Layout
 
 - `src/` …
-- `migrations/` app tables; `oc-kit` owns the `oc_*` tables.
+- `migrations/` app tables.
 
 ## Commands
 

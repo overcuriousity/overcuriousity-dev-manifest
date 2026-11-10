@@ -41,7 +41,7 @@ The installer checks every file against the bundle's `SHA256SUMS`. If any file h
 
 ## TLS on an airgapped network
 
-The app never terminates TLS itself. It listens on `127.0.0.1:8080`, and nginx on the same machine serves https. Plain http over the network is not supported, because secure cookies and passkeys require https.
+The app never terminates TLS itself. By default it listens on `127.0.0.1:8080`, and nginx on the same machine serves https. For plain http instead, see below.
 
 Use either of these:
 - A certificate from your local CA. This is best: browsers trust it once the CA is installed on each client.
@@ -70,7 +70,18 @@ Then:
    public_url = "https://journal.lan"
    ```
 
-The app refuses to start if `public_url` is not https, except for `localhost`.
+The app refuses to start if `public_url` is not https, except for `localhost` or with `allow_plain_http`.
+
+## Plain http on a LAN
+
+Without TLS, passwords and session cookies cross the network unencrypted, the session cookie loses `Secure` and passkeys are off. If that is acceptable on your network, opt in explicitly in `/etc/demo/config.toml`:
+
+```toml
+allow_plain_http = true
+public_url = "http://journal.lan"
+```
+
+Keep nginx in front on port 80, or skip it and bind the app to the LAN with `bind = "0.0.0.0:8080"` and `public_url = "http://journal.lan:8080"`.
 
 ## Build from source without network
 

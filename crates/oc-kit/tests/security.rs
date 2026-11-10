@@ -171,3 +171,38 @@ async fn a_forwarded_host_header_cannot_bypass_the_host_check() {
         .unwrap();
     assert_eq!(status(local(), r).await, StatusCode::MISDIRECTED_REQUEST);
 }
+
+fn plain_http_lan() -> Router {
+    let cfg = OcConfig {
+        public_url: Some("http://notes.lan".parse().unwrap()),
+        allow_plain_http: true,
+        ..OcConfig::default()
+    };
+    let router = Router::new()
+        .route("/", get(|| async { Html("<p>hi</p>") }))
+        .route("/write", post(|_b: String| async { "ok" }));
+    secure(router, &cfg.deployment().unwrap(), &cfg.trusted_proxies, Limits::default())
+        .layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 4000))))
+}
+
+#[tokio::test]
+async fn plain_http_sends_same_origin_referrers_and_no_hsts() {
+    let r = Request::get("/").header(header::HOST, "notes.lan").body(Body::empty()).unwrap();
+    let res = plain_http_lan().oneshot(r).await.unwrap();
+    assert_eq!(res.headers()["referrer-policy"], "same-origin");
+    assert!(res.headers().get("strict-transport-security").is_none());
+}
+
+#[tokio::test]
+async fn plain_http_accepts_same_origin_posts_without_fetch_metadata_and_rejects_others() {
+    let post = |origin: &str| {
+        Request::post("/write")
+            .header(header::HOST, "notes.lan")
+            .header(header::ORIGIN, origin)
+            .header(header::COOKIE, "s=1")
+            .body(Body::empty())
+            .unwrap()
+    };
+    assert_eq!(status(plain_http_lan(), post("http://notes.lan")).await, StatusCode::OK);
+    assert_eq!(status(plain_http_lan(), post("http://evil.lan")).await, StatusCode::FORBIDDEN);
+}

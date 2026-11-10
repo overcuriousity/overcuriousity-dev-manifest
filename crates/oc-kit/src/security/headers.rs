@@ -18,7 +18,9 @@ pub(super) async fn security_headers(State(ctx): State<Arc<Ctx>>, req: Request, 
         h.insert(header::CONTENT_SECURITY_POLICY, HeaderValue::from_static(CSP));
     }
     h.insert(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff"));
-    h.insert(header::REFERRER_POLICY, HeaderValue::from_static("no-referrer"));
+    // Without a secure context browsers send no `Sec-Fetch-Site`, so same-origin posts need a real `Origin`.
+    let referrer = if ctx.dep.secure_context { "no-referrer" } else { "same-origin" };
+    h.insert(header::REFERRER_POLICY, HeaderValue::from_static(referrer));
     h.insert("cross-origin-opener-policy", HeaderValue::from_static("same-origin"));
     if ctx.dep.secure {
         h.insert(header::STRICT_TRANSPORT_SECURITY, HeaderValue::from_static("max-age=63072000"));

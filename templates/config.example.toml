@@ -2,8 +2,10 @@
 # (the app's name in capitals), for example APP__BIND=127.0.0.1:9000.
 # A key ending in _FILE reads the value from a file: APP__AUTH__OIDC__CLIENT_SECRET_FILE=/run/secrets/oidc.
 
-# The https address users see. Required unless the app is reached via localhost.
+# The address users see. Required unless the app is reached via localhost.
 # public_url = "https://app.example.org"
+# Plain http on a non-loopback host: cookies lose Secure, passkeys are off. See AIRGAP.md.
+# allow_plain_http = false
 
 bind = "127.0.0.1:8080"
 trusted_proxies = ["127.0.0.1/32", "::1/128"]

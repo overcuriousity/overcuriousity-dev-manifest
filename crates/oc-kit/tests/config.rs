@@ -28,7 +28,21 @@ fn no_public_url_on_a_non_loopback_bind_is_refused() {
 #[test]
 fn an_http_public_url_on_a_non_loopback_host_is_refused() {
     let e = cfg("public_url = \"http://notes.lan\"").deployment().unwrap_err();
-    assert_eq!(e.to_string(), "public_url must be https unless it is localhost.");
+    assert_eq!(e.to_string(), "public_url must be https unless it is localhost or allow_plain_http is set.");
+}
+
+#[test]
+fn allow_plain_http_accepts_an_http_lan_url_outside_a_secure_context() {
+    let d = cfg("public_url = \"http://notes.lan:8080\"\nallow_plain_http = true").deployment().unwrap();
+    assert!(!d.secure && !d.secure_context);
+    assert_eq!(d.origin, "http://notes.lan:8080");
+    assert!(d.host_allowed("notes.lan:8080") && !d.host_allowed("notes.lan"));
+}
+
+#[test]
+fn http_localhost_and_https_are_secure_contexts() {
+    assert!(cfg("").deployment().unwrap().secure_context);
+    assert!(cfg("public_url = \"https://notes.example\"").deployment().unwrap().secure_context);
 }
 
 #[test]

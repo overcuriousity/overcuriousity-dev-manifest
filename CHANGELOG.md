@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+- Manifest: the deployer decides. Proxy, TLS, bind address, paths and service manager are settings; nginx and the systemd unit are SHOULD, not MUST.
+- Manifest: plain http on a LAN MAY be used when `allow_plain_http = true` is set; the old NEVER on an insecure LAN mode is gone.
+- Manifest: `oc-kit` is a reference implementation; depending on it is optional, and kit-specific rules moved to "Using `oc-kit`" in `50-stack.md`.
+- `oc-kit`: `allow_plain_http` accepts an http `public_url` on a non-loopback host. There the session cookie is `<app>-session` without Secure, passkeys are off and `Referrer-Policy` is `same-origin` so the origin check still works.
+- `oc-kit`: `session_layer` takes the deployment again, to pick the cookie name and Secure flag.
+
 ## [2026.11.1]
 
 ### Security
