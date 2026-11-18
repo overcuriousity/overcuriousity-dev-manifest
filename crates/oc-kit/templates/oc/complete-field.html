@@ -4,6 +4,6 @@
     <input class="oc-input" id="{{ id }}" type="text" name="{{ name }}" value="{{ value }}" autocomplete="off" aria-describedby="oc-complete-help"{% if required %} required{% endif %}{% if let Some(n) = maxlength %} maxlength="{{ n }}"{% endif %}{{ attrs }}>
     <span class="oc-complete__ghost" aria-hidden="true"><span class="oc-complete__typed"></span><span class="oc-complete__rest"></span></span>
   </div>
-  <button type="button" class="oc-btn oc-complete__take" hidden>Take word</button>
+  <button type="button" class="oc-btn oc-complete__take" inert>Take word</button>
   <div class="oc-complete__recent" hidden></div>
 </div>

@@ -16,6 +16,8 @@ export function cut(s, n) {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
+const attached = new WeakMap();
+
 function shared(id, setup) {
   let el = document.getElementById(id);
   if (!el) {
@@ -38,6 +40,7 @@ function insert(input, text, onFallback) {
 }
 
 export function attach(input, { candidates, recent }) {
+  if (attached.has(input)) return attached.get(input);
   const wrap = input.closest(".oc-complete");
   const ghost = wrap.querySelector(".oc-complete__ghost");
   const typed = ghost.querySelector(".oc-complete__typed");
@@ -55,9 +58,10 @@ export function attach(input, { candidates, recent }) {
 
   const atEnd = () => input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
 
-  // Rebuilt only on change: a rebuild between mousedown and click would swallow the click.
+  // The row keeps its space while the field has text, so nothing below it moves while typing.
   const renderRecent = () => {
-    const values = input.value ? [] : (recent?.() ?? []).slice(0, 5);
+    row.inert = input.value !== "";
+    const values = (recent?.() ?? []).slice(0, 5);
     const key = JSON.stringify(values);
     if (key === shownRecent) return;
     shownRecent = key;
@@ -66,7 +70,9 @@ export function attach(input, { candidates, recent }) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "oc-btn";
-        b.textContent = v;
+        const t = document.createElement("span");
+        t.textContent = v;
+        b.append(t);
         b.addEventListener("click", () => {
           input.focus();
           input.select();
@@ -81,11 +87,14 @@ export function attach(input, { candidates, recent }) {
   const update = () => {
     const focused = document.activeElement === input;
     current = focused && !dismissed && atEnd() ? rest(input.value, candidates()) : "";
-    typed.textContent = current ? input.value : "";
-    tail.textContent = current;
-    ghost.scrollLeft = input.scrollLeft;
-    take.hidden = !current;
+    // Overflowing text leaves no room after the caret; the take button still works.
+    const show = current && input.scrollWidth <= input.clientWidth;
+    typed.textContent = show ? input.value : "";
+    tail.textContent = show ? current : "";
+    take.inert = !current;
     renderRecent();
+    // The input scrolls to the caret only after layout.
+    requestAnimationFrame(() => (ghost.scrollLeft = input.scrollLeft));
   };
 
   const takeWord = () => {
@@ -102,7 +111,8 @@ export function attach(input, { candidates, recent }) {
     }, 500);
   };
   const onKey = (e) => {
-    if (e.isComposing || !current) return;
+    // keyCode 229: Safari's composition keydowns.
+    if (e.isComposing || e.keyCode === 229 || !current) return;
     if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
       takeWord();
@@ -136,22 +146,23 @@ export function attach(input, { candidates, recent }) {
   for (const [el, type, fn] of listeners) el.addEventListener(type, fn);
   update();
 
-  return () => {
+  const detach = () => {
     for (const [el, type, fn] of listeners) el.removeEventListener(type, fn);
     clearTimeout(timer);
     typed.textContent = tail.textContent = "";
-    take.hidden = row.hidden = true;
+    take.inert = true;
+    row.hidden = true;
     row.replaceChildren();
-    shownRecent = undefined;
+    attached.delete(input);
   };
+  attached.set(input, detach);
+  return detach;
 }
 
 // Apps may rewrite data-oc-complete after their own writes; it is re-parsed only when it changes.
 function wire(wrap) {
-  if (wrap.dataset.ocCompleteWired) return;
   const input = wrap.querySelector("input");
-  if (!input) return;
-  wrap.dataset.ocCompleteWired = "1";
+  if (!input || attached.has(input)) return;
   let raw;
   let list = [];
   const candidates = () => {
@@ -169,12 +180,20 @@ function wire(wrap) {
   attach(input, { candidates, recent: () => candidates().slice(0, 5) });
 }
 
+function within(root, selector) {
+  return [...(root.matches?.(selector) ? [root] : []), ...(root.querySelectorAll?.(selector) ?? [])];
+}
+
 function scan(root) {
-  if (root.matches?.("[data-oc-complete]")) wire(root);
-  for (const w of root.querySelectorAll?.("[data-oc-complete]") ?? []) wire(w);
+  for (const w of within(root, "[data-oc-complete]")) wire(w);
 }
 
 if (typeof document !== "undefined") {
   scan(document);
   document.addEventListener("htmx:afterSwap", (e) => scan(e.target));
+  // A restored history snapshot holds fresh, unwired inputs.
+  document.addEventListener("htmx:historyRestore", () => scan(document));
+  document.addEventListener("htmx:beforeCleanupElement", (e) => {
+    for (const input of within(e.target, "input")) attached.get(input)?.();
+  });
 }

@@ -461,14 +461,36 @@ mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
 
+    /// Decodes what an HTML parser would: numeric and the common named entities.
+    fn unescape(s: &str) -> String {
+        let mut out = String::new();
+        let mut rest = s;
+        while let Some(i) = rest.find('&') {
+            out.push_str(&rest[..i]);
+            let end = rest[i..].find(';').unwrap() + i;
+            let ent = &rest[i + 1..end];
+            let c = match ent {
+                "amp" => '&',
+                "lt" => '<',
+                "gt" => '>',
+                "quot" => '"',
+                _ => char::from_u32(ent.trim_start_matches('#').parse().unwrap()).unwrap(),
+            };
+            out.push(c);
+            rest = &rest[end + 1..];
+        }
+        out + rest
+    }
+
     #[test]
     fn a_complete_field_carries_its_candidates_as_escaped_json() {
+        let f_candidates = vec!["a\"b".to_string(), "a&<'b".to_string()];
         let f = CompleteField {
             id: "title".into(),
             name: "title".into(),
             label: "Title".into(),
             value: String::new(),
-            candidates: vec!["a\"b".into()],
+            candidates: f_candidates.clone(),
             attrs: HxAttrs::new(),
             required: false,
             maxlength: None,
@@ -477,7 +499,8 @@ mod tests {
         assert!(h.contains("autocomplete=\"off\"") && h.contains("aria-describedby=\"oc-complete-help\""), "{h}");
         let start = h.find("data-oc-complete=\"").unwrap() + "data-oc-complete=\"".len();
         let raw = &h[start..start + h[start..].find('"').unwrap()];
-        let json = raw.replace("&#34;", "\"").replace("&quot;", "\"").replace("&#92;", "\\").replace("&amp;", "&");
-        assert_eq!(serde_json::from_str::<Vec<String>>(&json).unwrap(), vec!["a\"b".to_string()]);
+        assert!(!raw.contains(['<', '\'']), "{raw}");
+        let json = unescape(raw);
+        assert_eq!(serde_json::from_str::<Vec<String>>(&json).unwrap(), f_candidates);
     }
 }

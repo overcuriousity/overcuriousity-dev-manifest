@@ -167,8 +167,11 @@ textarea.oc-input { height: auto; min-height: 8rem; padding: var(--space-2) var(
 }
 .oc-complete__typed { color: transparent; }
 .oc-complete__take { align-self: flex-start; }
+/* Inert parts keep their space so the form never moves under the pointer. */
+.oc-complete [inert] { visibility: hidden; }
 .oc-complete__recent { display: flex; flex-wrap: wrap; gap: var(--space-1); }
-.oc-complete__recent > .oc-btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+.oc-complete__recent > .oc-btn { max-width: 100%; font-weight: 400; }
+.oc-complete__recent > .oc-btn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 .oc-search { position: relative; width: 100%; max-width: 36rem; }
 .oc-search > .oc-icon { position: absolute; left: var(--space-2); top: 50%; translate: 0 -50%; color: var(--color-fg-muted); pointer-events: none; }
