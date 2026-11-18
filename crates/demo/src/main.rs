@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use demo::state::{APP, Settings};
 use demo::{app, db, domain};
-use oc_kit::config::{OcConfig, load};
+use oc_kit::config::{OcConfig, load, load_for_check};
 use oc_kit::identity::{password, users};
 use tracing_subscriber::EnvFilter;
 
@@ -22,6 +22,8 @@ struct Cli {
 enum Command {
     /// Run the web server (the default).
     Serve,
+    /// Validate the config without touching data; prints bind and public_url.
+    CheckConfig,
     /// Manage accounts.
     #[command(subcommand)]
     User(UserCommand),
@@ -56,11 +58,18 @@ async fn main() -> ExitCode {
 }
 
 async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
+    if matches!(cli.command, Some(Command::CheckConfig)) {
+        let cfg: OcConfig = load_for_check(APP, cli.config.as_deref())?;
+        let _: Settings = cfg.app()?;
+        println!("bind={}\npublic_url={}", cfg.bind, cfg.deployment()?.origin);
+        return Ok(());
+    }
     let cfg: OcConfig = load(APP, cli.config.as_deref())?;
     let settings: Settings = cfg.app()?;
     let pool = db::open(&cfg.data_dir(APP)).await?;
     match cli.command.unwrap_or(Command::Serve) {
         Command::Serve => serve(cfg, settings, pool).await,
+        Command::CheckConfig => unreachable!("handled before the database opens"),
         Command::User(UserCommand::Add { username, admin, display_name }) => {
             let pw = password::generate(20);
             let name = display_name.unwrap_or_else(|| username.clone());
