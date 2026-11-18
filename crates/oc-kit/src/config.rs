@@ -16,6 +16,9 @@ pub struct OcConfig {
     pub public_url: Option<Url>,
     /// Accept an `http://` `public_url` on a non-loopback host, for a LAN without TLS.
     pub allow_plain_http: bool,
+    /// More host names to answer for, such as a short-link domain. Writes still need
+    /// `public_url`'s origin, so a request from one of these cannot change state.
+    pub extra_hosts: Vec<String>,
     pub bind: SocketAddr,
     pub trusted_proxies: Vec<IpNet>,
     pub data_dir: Option<PathBuf>,
@@ -29,6 +32,7 @@ impl Default for OcConfig {
         Self {
             public_url: None,
             allow_plain_http: false,
+            extra_hosts: Vec::new(),
             bind: SocketAddr::from(([127, 0, 0, 1], 8080)),
             trusted_proxies: ["127.0.0.1/32", "::1/128"].iter().filter_map(|s| s.parse().ok()).collect(),
             data_dir: None,
@@ -147,6 +151,7 @@ pub struct Deployment {
     pub secure_context: bool,
     pub rp_id: String,
     pub public_url: Url,
+    pub extra_hosts: Vec<String>,
     port: u16,
     loopback_dev: bool,
 }
@@ -159,6 +164,9 @@ impl Deployment {
             return LOOPBACK_NAMES
                 .iter()
                 .any(|n| host == format!("{n}:{}", self.port) || (self.port == 80 && host == *n));
+        }
+        if self.extra_hosts.iter().any(|h| h == host) {
+            return true;
         }
         let expected = self.public_url.host_str().unwrap_or_default();
         match self.public_url.port() {
@@ -212,6 +220,7 @@ impl OcConfig {
                 secure: false,
                 secure_context: true,
                 rp_id: "localhost".into(),
+                extra_hosts: Vec::new(),
                 port: self.bind.port(),
                 loopback_dev: true,
             });
@@ -235,6 +244,7 @@ impl OcConfig {
             secure_context: secure || is_loopback_host,
             rp_id: host,
             public_url: url.clone(),
+            extra_hosts: self.extra_hosts.clone(),
             port: url.port_or_known_default().unwrap_or(443),
             loopback_dev: false,
         })

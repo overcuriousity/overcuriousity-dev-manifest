@@ -22,7 +22,7 @@ use crate::config::Deployment;
 
 pub use client_ip::ClientIp;
 pub use headers::CSP;
-pub use rate::rate_limit;
+pub use rate::{Buckets, rate_limit};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Limits {

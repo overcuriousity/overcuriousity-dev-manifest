@@ -29,7 +29,13 @@ fn bucket_key(ip: IpAddr) -> IpAddr {
 }
 
 impl Buckets {
-    fn take(&self, ip: IpAddr) -> bool {
+    pub fn new(per_minute: u32, burst: u32) -> Self {
+        Self { per_second: f64::from(per_minute) / 60.0, burst: f64::from(burst), state: Arc::default() }
+    }
+
+    /// Spends one token for `ip`. To count only failures, call it from a handler
+    /// after the failure and answer 429 on `false`.
+    pub fn take(&self, ip: IpAddr) -> bool {
         let Ok(mut map) = self.state.lock() else {
             return true;
         };
@@ -76,14 +82,22 @@ type RateLayer = FromFnLayer<
 
 /// A per-client token bucket: `per_minute` sustained, `burst` at once.
 pub fn rate_limit(per_minute: u32, burst: u32) -> RateLayer {
-    let b = Buckets { per_second: f64::from(per_minute) / 60.0, burst: f64::from(burst), state: Arc::default() };
-    from_fn_with_state(b, |s, r, n| Box::pin(limit(s, r, n)))
+    from_fn_with_state(Buckets::new(per_minute, burst), |s, r, n| Box::pin(limit(s, r, n)))
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::bucket_key;
+    use super::{Buckets, bucket_key};
+
+    #[test]
+    fn buckets_refuse_after_burst() {
+        let b = Buckets::new(60, 2);
+        let ip = "10.0.0.1".parse().unwrap();
+        assert!(b.take(ip));
+        assert!(b.take(ip));
+        assert!(!b.take(ip));
+    }
 
     #[test]
     fn same_v6_64_shares() {

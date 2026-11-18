@@ -206,3 +206,29 @@ async fn plain_http_accepts_same_origin_posts_without_fetch_metadata_and_rejects
     assert_eq!(status(plain_http_lan(), post("http://notes.lan")).await, StatusCode::OK);
     assert_eq!(status(plain_http_lan(), post("http://evil.lan")).await, StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn extra_host_get_ok_post_from_it_refused() {
+    let cfg = OcConfig {
+        public_url: Some("https://app.example.org".parse().unwrap()),
+        extra_hosts: vec!["s.example.org".into()],
+        ..OcConfig::default()
+    };
+    let router = || {
+        let r = Router::new()
+            .route("/", get(|| async { Html("<p>hi</p>") }))
+            .route("/write", post(|_b: String| async { "ok" }));
+        secure(r, &cfg.deployment().unwrap(), &cfg.trusted_proxies, Limits::default())
+            .layer(MockConnectInfo(SocketAddr::from(([127, 0, 0, 1], 4000))))
+    };
+    let get_from = |host: &str| Request::get("/").header(header::HOST, host.to_owned()).body(Body::empty()).unwrap();
+    assert_eq!(status(router(), get_from("s.example.org")).await, StatusCode::OK);
+    assert_eq!(status(router(), get_from("other.example.org")).await, StatusCode::MISDIRECTED_REQUEST);
+    let post = Request::post("/write")
+        .header(header::HOST, "s.example.org")
+        .header(header::ORIGIN, "https://s.example.org")
+        .header(header::COOKIE, "s=1")
+        .body(Body::empty())
+        .unwrap();
+    assert_eq!(status(router(), post).await, StatusCode::FORBIDDEN);
+}
