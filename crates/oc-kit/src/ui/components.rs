@@ -335,6 +335,26 @@ pub struct Select {
     pub attrs: HxAttrs,
 }
 
+/// A text field that suggests from `candidates`, ranked by the caller (best first).
+#[derive(Debug, Clone, Template)]
+#[template(path = "oc/complete-field.html")]
+pub struct CompleteField {
+    pub id: String,
+    pub name: String,
+    pub label: String,
+    pub value: String,
+    pub candidates: Vec<String>,
+    pub attrs: HxAttrs,
+    pub required: bool,
+    pub maxlength: Option<u32>,
+}
+
+impl CompleteField {
+    fn candidates_json(&self) -> String {
+        serde_json::to_string(&self.candidates).unwrap_or_else(|_| "[]".into())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Tab {
     pub href: String,
@@ -427,6 +447,7 @@ html_safe!(
     Dialog,
     TypedConfirm,
     Select,
+    CompleteField,
     TabBar,
     SearchBox,
     StatusBar,
@@ -434,3 +455,29 @@ html_safe!(
     TokenList,
     PasskeyList
 );
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+
+    #[test]
+    fn a_complete_field_carries_its_candidates_as_escaped_json() {
+        let f = CompleteField {
+            id: "title".into(),
+            name: "title".into(),
+            label: "Title".into(),
+            value: String::new(),
+            candidates: vec!["a\"b".into()],
+            attrs: HxAttrs::new(),
+            required: false,
+            maxlength: None,
+        };
+        let h = Html::from(f).into_string();
+        assert!(h.contains("autocomplete=\"off\"") && h.contains("aria-describedby=\"oc-complete-help\""), "{h}");
+        let start = h.find("data-oc-complete=\"").unwrap() + "data-oc-complete=\"".len();
+        let raw = &h[start..start + h[start..].find('"').unwrap()];
+        let json = raw.replace("&#34;", "\"").replace("&quot;", "\"").replace("&#92;", "\\").replace("&amp;", "&");
+        assert_eq!(serde_json::from_str::<Vec<String>>(&json).unwrap(), vec!["a\"b".to_string()]);
+    }
+}

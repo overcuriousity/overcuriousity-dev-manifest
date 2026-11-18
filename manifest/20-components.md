@@ -38,6 +38,7 @@ Every component has a reference implementation in `crates/oc-kit/src/ui/` and ap
 - MUST: facts lists pair a muted label column with values, copy buttons and hairline rows.
 - MUST: an empty state is one line saying what is missing and how to add it, plus the button to do it. No illustrations.
 - MUST: labels above fields; placeholders never replace labels; correct `type`, `inputmode` and `autocomplete`; inputs at least 16 px on touch; validation uses the notice pattern inline.
+- MUST: an autocomplete field is a wrapper carrying the ranked suggestions as JSON in `data-oc-complete`, holding the label, the input (`autocomplete="off"`, `aria-describedby="oc-complete-help"`), an `aria-hidden` ghost laid over the input with the same border, padding and font, a "Take word" button (`type=button`) and a row of recent values. The ghost never changes the field's size or touch target.
 
 ## Menus, pickers, dialogs
 
@@ -48,5 +49,5 @@ Every component has a reference implementation in `crates/oc-kit/src/ui/` and ap
 ## Copy, keyboard, text size
 
 - MUST: copy writes the full value, flips the icon to a check for 1.5 s and announces "Copied"; it is offered only in secure contexts.
-- MUST: every shortcut is shown in its tooltip ("Filter to this (F)"); `?` lists them all, `/` focuses search, Esc closes the innermost layer; shortcuts never fire while typing.
+- MUST: every shortcut is shown in its tooltip ("Filter to this (F)"); `?` lists them all, `/` focuses search, Esc closes the innermost layer; shortcuts never fire while typing, except Tab in a field with a visible suggestion (see autocomplete in `40-interaction.md`).
 - MUST: text size has two steps, default (100 %) and compact (87.5 %, rows tighten more than text), toggled in the top bar and stored like the theme.

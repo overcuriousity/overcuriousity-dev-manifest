@@ -57,8 +57,8 @@ fn theme_colors() -> &'static (String, String) {
     })
 }
 
-pub const KIT_MODULES: [&str; 11] =
-    ["prefs", "copy", "notices", "menu", "keys", "dialog", "rows", "pane", "busy", "passkey", "live"];
+pub const KIT_MODULES: [&str; 12] =
+    ["prefs", "copy", "notices", "menu", "keys", "dialog", "rows", "pane", "busy", "passkey", "live", "complete"];
 
 #[derive(Debug, Clone, Template)]
 #[template(path = "oc/page.html")]

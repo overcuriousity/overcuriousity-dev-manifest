@@ -149,6 +149,27 @@ textarea.oc-input { height: auto; min-height: 8rem; padding: var(--space-2) var(
 .oc-form { display: flex; flex-direction: column; gap: var(--space-4); max-width: 36rem; }
 .oc-form__actions { display: flex; gap: var(--space-2); }
 
+/* The ghost overlays the input with the same border, padding and font, so the transparent
+   typed copy pushes the grey rest to the caret. */
+.oc-complete__box { position: relative; display: flex; }
+.oc-complete__box > .oc-input { flex: 1; }
+.oc-complete__ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  overflow: hidden;
+  white-space: pre;
+  color: var(--color-fg-muted);
+  pointer-events: none;
+}
+.oc-complete__typed { color: transparent; }
+.oc-complete__take { align-self: flex-start; }
+.oc-complete__recent { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.oc-complete__recent > .oc-btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+
 .oc-search { position: relative; width: 100%; max-width: 36rem; }
 .oc-search > .oc-icon { position: absolute; left: var(--space-2); top: 50%; translate: 0 -50%; color: var(--color-fg-muted); pointer-events: none; }
 .oc-search > .oc-input { width: 100%; height: var(--target-tool); padding-left: 2rem; }
