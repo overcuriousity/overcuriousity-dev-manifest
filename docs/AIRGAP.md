@@ -50,7 +50,7 @@ Run the new release's `install.sh` the same way as the first install (`--system`
 
 The installer refuses to install an older version over a newer one ("downgrade from Y to X"), because an older binary would start on a newer database schema. It also stops with "already at X" for the same version. `DEMO_FORCE=1` overrides both.
 
-The check runs as root, outside the service. It uses the unit's `Environment=` lines, so drop-in overrides count. It does not read `EnvironmentFile=`, and `file://` secret paths are checked for form only. A setting that comes only from there is first tested when the service starts, and a failure then triggers the rollback.
+The check runs as root, outside the service. It uses the unit's `Environment=` lines, so drop-in overrides count. It does not read `EnvironmentFile=`, and a secret file it cannot read (such as one under `/run/credentials/`) is skipped. A setting that comes only from there is first tested when the service starts, and a failure then triggers the rollback.
 
 To go back by hand, stop the service, copy the files from a backup directory back to where they came from, run `systemctl daemon-reload` and start the service.
 
