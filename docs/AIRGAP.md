@@ -52,7 +52,7 @@ The installer refuses to install an older version over a newer one ("downgrade f
 
 The check runs as root, outside the service. It uses the unit's `Environment=` lines, so drop-in overrides count. It does not read `EnvironmentFile=`, and a secret file it cannot read (such as one under `/run/credentials/`) is skipped. A setting that comes only from there is first tested when the service starts, and a failure then triggers the rollback.
 
-To go back by hand, stop the service, copy the files from a backup directory back to where they came from, run `systemctl daemon-reload` and start the service.
+If the rollback itself fails, the installer leaves the service stopped and disabled and names the backup directory. To go back by hand, stop the service, then copy from a backup directory: `demo` to `/usr/local/bin/demo`, `demo.service` to `/etc/systemd/system/`, and `state` to `/var/lib/private/demo` (`cp -a`, after moving the current one aside). Then run `systemctl daemon-reload` and `systemctl enable --now demo`.
 
 ## Installer variables
 

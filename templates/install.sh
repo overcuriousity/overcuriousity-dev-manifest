@@ -68,8 +68,8 @@ main() {
     name="$app-$version-$target-offline.tar.gz"
     base="https://github.com/$repo/releases/download/v$version"
     say "Downloading $name"
-    curl -fsSL -o "$work/$name" "$base/$name" || die "Download failed: $base/$name"
-    curl -fsSL -o "$work/SHA256SUMS" "$base/SHA256SUMS" || die "Download failed: $base/SHA256SUMS"
+    curl -fsSL --proto '=https' --proto-redir '=https' -o "$work/$name" "$base/$name" || die "Download failed: $base/$name"
+    curl -fsSL --proto '=https' --proto-redir '=https' -o "$work/SHA256SUMS" "$base/SHA256SUMS" || die "Download failed: $base/SHA256SUMS"
     grep "  $name\$" "$work/SHA256SUMS" >"$work/sum" || die "SHA256SUMS does not list $name."
     (cd "$work" && sha256sum -c --quiet sum >/dev/null 2>&1) || die "Checksum mismatch: $name. The download is damaged or was altered."
     verify_provenance "$work/$name"
@@ -118,8 +118,9 @@ main() {
     cc_cfg=$2
     env_line=""
     [ -f "$unit" ] && env_line=$(systemctl show -p Environment --value "$app" 2>/dev/null || true)
-    # The unit's Environment= words are KEY=VALUE pairs; run the check with them.
-    if ! (eval "set -- $env_line"; env "$@" "$cc_bin" --config "$cc_cfg" check-config) >"$work/check.out" 2>&1; then
+    # systemctl show quotes each KEY=VALUE word shell-style, so eval splits them as the unit sees them.
+    # env -i keeps root's own overrides out of the check.
+    if ! (eval "set -- $env_line"; env -i PATH="$PATH" "$@" "$cc_bin" --config "$cc_cfg" check-config) >"$work/check.out" 2>&1; then
       return 1
     fi
     cc_bind=$(sed -n 's/^bind=//p' "$work/check.out")
@@ -135,10 +136,10 @@ main() {
       case "$addr" in 0.0.0.0) addr=127.0.0.1 ;; '[::]') addr='[::1]' ;; esac
       host=${2#*://}
       host=${host%%/*}
-      i=0
-      while [ $i -lt 30 ]; do
-        curl -fsS -o /dev/null --max-time 2 -H "Host: $host" "http://$addr:$port/healthz" 2>/dev/null && return 0
-        i=$((i + 1))
+      deadline=$(($(date +%s) + 30))
+      while [ "$(date +%s)" -lt "$deadline" ]; do
+        # A proxy from the environment would answer for loopback, or not at all.
+        curl -fsS --noproxy '*' -o /dev/null --max-time 2 -H "Host: $host" "http://$addr:$port/healthz" 2>/dev/null && return 0
         sleep 1
       done
       return 1
@@ -221,9 +222,17 @@ main() {
   }
 
   backup() {
-    bdir="/var/backups/$app/$(date -u +%Y%m%dT%H%M%SZ)"
-    mkdir -p "$bdir"
+    mkdir -p "/var/backups/$app"
     chmod 0700 "/var/backups/$app"
+    stamp=$(date -u +%Y%m%dT%H%M%SZ)
+    bdir="/var/backups/$app/$stamp"
+    n=1
+    until mkdir "$bdir" 2>/dev/null; do
+      [ -e "$bdir" ] || die "Cannot create $bdir; nothing changed; $old keeps running."
+      n=$((n + 1))
+      bdir="/var/backups/$app/$stamp-$n"
+    done
+    trap 'rm -rf "$bdir"; systemctl start "$app"; die "Interrupted during the backup; nothing changed."' INT TERM HUP
     # Stopped first so the SQLite files, WAL included, are consistent.
     systemctl stop "$app"
     # DynamicUser keeps StateDirectory under /var/lib/private.
@@ -238,28 +247,54 @@ main() {
       systemctl start "$app" || true
       die "Backup to $bdir failed; nothing changed; $old keeps running."
     fi
+    # dash runs no EXIT trap on a fatal signal, so an interrupted update rolls back here.
+    new_ran=0
+    trap rollback INT TERM HUP
     say "Backed up to $bdir"
   }
 
   prune_backups() {
-    find "/var/backups/$app" -mindepth 1 -maxdepth 1 -type d | sort -r | tail -n +3 | while read -r d; do
+    find "/var/backups/$app" -mindepth 1 -maxdepth 1 -type d \( -name '????????T??????Z' -o -name '????????T??????Z-*' \) |
+      LC_ALL=C sort -r | tail -n +3 | while read -r d; do
       rm -rf "$d"
     done
   }
 
+  # Called as `... || rollback` or from a signal trap, so every step is checked by hand.
   rollback() {
+    trap - INT TERM HUP
+    rb_ok=1
     systemctl stop "$app" 2>/dev/null || true
-    cp -a "$bdir/$app" "$bin.new"
-    mv -f "$bin.new" "$bin"
-    cp -a "$bdir/$app.service" "$unit"
-    if [ -f "$bdir/unit.sha256" ]; then cp -a "$bdir/unit.sha256" "/etc/$app/.unit.sha256"; fi
-    if [ -n "$state" ]; then
-      rm -rf "$state"
-      cp -a "$bdir/state" "$state"
+    { cp -a "$bdir/$app" "$bin.new" && mv -f "$bin.new" "$bin"; } || rb_ok=0
+    { cp -a "$bdir/$app.service" "$unit.old" && mv -f "$unit.old" "$unit"; } || rb_ok=0
+    if [ -f "$bdir/unit.sha256" ]; then
+      cp -a "$bdir/unit.sha256" "/etc/$app/.unit.sha256" || rb_ok=0
+    else
+      rm -f "/etc/$app/.unit.sha256" || rb_ok=0
     fi
-    systemctl daemon-reload
+    # Only a started new binary can have migrated the data.
+    if [ "$rb_ok" = 1 ] && [ "$new_ran" = 1 ] && [ -n "$state" ]; then
+      failed="$state.failed.$stamp"
+      if mv "$state" "$failed"; then
+        if cp -a "$bdir/state" "$state"; then
+          say "The data the new version left is in $failed."
+        else
+          rm -rf "$state"
+          mv "$failed" "$state" || true
+          rb_ok=0
+        fi
+      else
+        rb_ok=0
+      fi
+    fi
+    systemctl daemon-reload || rb_ok=0
+    if [ "$rb_ok" != 1 ]; then
+      # Disabled so a reboot does not start a half-restored install.
+      systemctl disable "$app" 2>/dev/null || true
+      die "update to $version failed and rollback failed; the old version is in $bdir; restore it by hand (see AIRGAP.md). $app is stopped and disabled."
+    fi
     systemctl reset-failed "$app" 2>/dev/null || true
-    systemctl start "$app" || echo "The old version did not start either." >&2
+    systemctl start "$app" || die "update to $version failed, rolled back to $old, but $old did not start. See: journalctl -u $app -n 50"
     die "update to $version failed, rolled back to $old. See: journalctl -u $app -n 50"
   }
 
@@ -283,16 +318,17 @@ main() {
       die "check-config of $version refused /etc/$app/config.toml; nothing changed; $old keeps running."
     }
     backup
-    prune_backups
-
     replace || rollback
 
+    new_ran=1
     if systemctl is-enabled --quiet "$app"; then
       systemctl restart "$app" || rollback
     else
       systemctl enable --now "$app" || rollback
     fi
     wait_healthy "$cc_bind" "$cc_url" || rollback
+    trap - INT TERM HUP
+    prune_backups || echo "Warning: could not prune old backups in /var/backups/$app." >&2
     say "Updated $app from $old to $version."
     summary
   }
@@ -341,19 +377,22 @@ main() {
   bin="$prefix/bin/$app"
 
   if [ "$system" -eq 1 ]; then
-    version=$("$bundle/$app" --version | cut -d' ' -f2)
+    version=$("$bundle/$app" --version 2>/dev/null | cut -d' ' -f2)
+    [ -n "$version" ] || die "Cannot run $bundle/$app (wrong architecture, or $work is mounted noexec; set TMPDIR elsewhere)."
     unit="/etc/systemd/system/$app.service"
     if [ ! -f "$unit" ]; then
       first_install
     else
       [ -x "$bin" ] || die "$unit exists but $bin does not; restore it or remove the unit."
-      old=$("$bin" --version | cut -d' ' -f2)
+      old=$("$bin" --version 2>/dev/null | cut -d' ' -f2)
+      [ -n "$old" ] || die "Cannot run $bin to read the installed version."
       force=$(env_of FORCE)
       if [ "$old" = "$version" ] && [ "$force" != 1 ]; then
         say "$app is already at $version; set ${envp}_FORCE=1 to reinstall."
         exit 0
       fi
       # Migrations ignore unknown ones, so an older binary would start quietly on a newer schema.
+      # Versions are CalVer without pre-release suffixes, so sort -V orders them.
       if [ "$old" != "$version" ] && [ "$(printf '%s\n%s\n' "$old" "$version" | sort -V | head -n 1)" = "$version" ] && [ "$force" != 1 ]; then
         die "downgrade from $old to $version; set ${envp}_FORCE=1 to do it anyway."
       fi
