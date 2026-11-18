@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 
@@ -98,10 +99,31 @@ impl std::fmt::Debug for Secret {
     }
 }
 
+thread_local! {
+    // Deserialize has no way to take options, so `load_for_check` passes this one out of band.
+    static NO_READ: Cell<bool> = const { Cell::new(false) };
+}
+
+struct NoReadGuard;
+
+impl NoReadGuard {
+    fn set() -> Self {
+        NO_READ.with(|f| f.set(true));
+        Self
+    }
+}
+
+impl Drop for NoReadGuard {
+    fn drop(&mut self) {
+        NO_READ.with(|f| f.set(false));
+    }
+}
+
 impl<'de> Deserialize<'de> for Secret {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let raw = String::deserialize(d)?;
         match raw.strip_prefix("file://") {
+            Some(_) if NO_READ.with(Cell::get) => Ok(Secret(raw)),
             Some(path) => std::fs::read_to_string(path)
                 .map(|s| Secret(s.trim_end_matches(['\n', '\r']).to_owned()))
                 .map_err(|e| serde::de::Error::custom(format!("Cannot read secret file {path}: {e}."))),
@@ -113,6 +135,18 @@ impl<'de> Deserialize<'de> for Secret {
 /// Loads `T` from an optional TOML file, then `{APP}__SECTION__KEY` environment variables.
 /// `{APP}__…__NAME_FILE=/path` sets `name` to the contents of that file, for any key.
 pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, OcError> {
+    load_inner(app, file, true)
+}
+
+/// Like [`load`], but reads no secret files: `file://` secrets stay as placeholders and
+/// `_FILE` variables merge the literal `file://<path>`. For `check-config` run outside the
+/// service, where `/run/credentials/...` does not exist. Everything else is still validated.
+pub fn load_for_check<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, OcError> {
+    let _guard = NoReadGuard::set();
+    load_inner(app, file, false)
+}
+
+fn load_inner<T: DeserializeOwned>(app: &str, file: Option<&Path>, read_files: bool) -> Result<T, OcError> {
     let prefix = format!("{}__", app.to_ascii_uppercase());
     let mut fig = Figment::new();
     if let Some(path) = file {
@@ -130,6 +164,10 @@ pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, Oc
             continue;
         };
         let key = name.to_ascii_lowercase().replace("__", ".");
+        if !read_files {
+            fig = fig.merge((key, format!("file://{value}")));
+            continue;
+        }
         let content = std::fs::read_to_string(&value)
             .map_err(|e| OcError::Config(format!("Cannot read {key} from {value}: {e}.")))?;
         let parsed: figment::value::Value = content
