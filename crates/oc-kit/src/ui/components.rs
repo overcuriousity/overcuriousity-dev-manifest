@@ -335,7 +335,8 @@ pub struct Select {
     pub attrs: HxAttrs,
 }
 
-/// A text field that suggests from `candidates`, ranked by the caller (best first).
+/// A text field that suggests from `candidates`, ranked by the caller (best first). An empty field
+/// offers the first five as one-tap values, so rank recent or often-used first, whichever fits.
 #[derive(Debug, Clone, Template)]
 #[template(path = "oc/complete-field.html")]
 pub struct CompleteField {
