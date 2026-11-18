@@ -29,14 +29,14 @@ main() {
     [ -t 0 ] || (true </dev/tty) 2>/dev/null
   }
 
-  # ask VAR PROMPT DEFAULT
+  # ask VAR NAME PROMPT DEFAULT: ${envp}_NAME presets the answer and skips the question.
   ask() {
-    ask_v=""
-    if interactive; then
-      printf '%s [%s]: ' "$2" "$3" >/dev/tty
+    ask_v=$(env_of "$2")
+    if [ -z "$ask_v" ] && interactive; then
+      printf '%s [%s]: ' "$3" "$4" >/dev/tty
       read -r ask_v </dev/tty || ask_v=""
     fi
-    [ -n "$ask_v" ] || ask_v=$3
+    [ -n "$ask_v" ] || ask_v=$4
     eval "$1=\$ask_v"
   }
 
@@ -48,9 +48,10 @@ main() {
     echo "LoadCredential=$1:/etc/$app/credentials/$1" >>"$work/credentials.conf"
   }
 
-  # The app's own first-install questions go here. Use `ask`, keep secrets out of the config with
-  # `put_secret` (the config refers to them as file:///run/credentials/$app.service/NAME), and
-  # append whole [sections] to "$staged", the config being written.
+  # The app's own first-install questions go here. Use `ask` with a preset name for each, as in
+  # `ask host SMTP_HOST "SMTP host" ""`, which ${envp}_SMTP_HOST presets. Keep secrets out of the
+  # config with `put_secret` (the config refers to them as file:///run/credentials/$app.service/NAME),
+  # and append whole [sections] to "$staged", the config being written.
   ask_app() {
     :
   }
@@ -174,15 +175,12 @@ main() {
       say "Keeping the existing /etc/$app/config.toml."
       cp "/etc/$app/config.toml" "$staged"
     else
-      bind=$(env_of BIND)
-      [ -n "$bind" ] || ask bind "Listen address" 127.0.0.1:8080
-      url=$(env_of PUBLIC_URL)
-      if [ -z "$url" ]; then
-        if is_loopback_bind "$bind"; then
-          ask url "Public URL users type (empty: http://localhost only)" ""
-        else
-          ask url "Public URL users type, e.g. https://$app.example.org" ""
-        fi
+      bind="" url="" # set by ask, through eval
+      ask bind BIND "Listen address" 127.0.0.1:8080
+      if is_loopback_bind "$bind"; then
+        ask url PUBLIC_URL "Public URL users type (empty: http://localhost only)" ""
+      else
+        ask url PUBLIC_URL "Public URL users type, e.g. https://$app.example.org" ""
       fi
       if [ -z "$url" ] && ! is_loopback_bind "$bind"; then
         die "public_url is required when binding to $bind; set ${envp}_PUBLIC_URL. Nothing was written."
@@ -336,16 +334,19 @@ main() {
 
   archive=""
   system=0
-  prefix="${HOME:-}/.local"
+  prefix=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --archive) [ $# -ge 2 ] || usage; archive=$2; shift 2 ;;
-      --system) system=1; prefix=/usr/local; shift ;;
+      --system) system=1; shift ;;
       --prefix) [ $# -ge 2 ] || usage; prefix=$2; shift 2 ;;
       -h|--help) usage ;;
       *) echo "Unknown option: $1" >&2; usage ;;
     esac
   done
+  if [ -z "$prefix" ]; then
+    if [ "$system" -eq 1 ]; then prefix=/usr/local; else prefix="${HOME:-}/.local"; fi
+  fi
   if [ -n "$archive" ] && [ ! -f "$archive" ]; then die "Archive not found: $archive"; fi
   if [ "$system" -eq 1 ] && [ "$(id -u)" -ne 0 ]; then
     die "Run as root for --system; this script never calls sudo."

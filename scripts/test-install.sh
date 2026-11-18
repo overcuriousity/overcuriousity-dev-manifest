@@ -1,6 +1,7 @@
 #!/bin/sh
 # Exercises templates/install.sh against a fake bundle: usage, user install, tamper detection,
-# --system without root, an unbaked copy without --archive, and a cut-off script.
+# --system without root, --prefix with --system in either order, question presets, an unbaked
+# copy without --archive, and a cut-off script.
 set -eu
 
 here=$(cd "$(dirname "$0")/.." && pwd)
@@ -11,7 +12,15 @@ make_bundle() {
   dir="$work/build/demo-1.0.0-test"
   rm -rf "$work/build"
   mkdir -p "$dir"
-  printf '#!/bin/sh\necho demo\n' > "$dir/demo"
+  # check-config runs under env -i, so the config copy goes to a path baked in here.
+  cat > "$dir/demo" <<EOF
+#!/bin/sh
+case "\${1:-}" in
+  --version) echo "demo 1.0.0" ;;
+  --config) cp "\$2" "$work/checked.toml"; echo bind=127.0.0.1:9001; echo public_url=http://localhost:9001 ;;
+  *) echo demo ;;
+esac
+EOF
   chmod 755 "$dir/demo"
   printf 'demo\n' > "$dir/name"
   printf 'server {}\n' > "$dir/nginx.conf"
@@ -46,6 +55,24 @@ if [ "$(id -u)" -ne 0 ]; then
   make_bundle
   if sh "$here/templates/install.sh" --archive "$work/bundle.tar.gz" --system > "$work/out" 2>&1; then fail "--system ran without root"; fi
   grep -q "Run as root for --system" "$work/out" || fail "no root message"
+fi
+
+# A fake root gets through first_install's binary step, then fails at /etc, which only real root
+# can write. Skipped as real root, where it would install for real.
+if [ "$(id -u)" -ne 0 ]; then
+  mkdir -p "$work/fakebin"
+  printf '#!/bin/sh\necho 0\n' > "$work/fakebin/id"
+  chmod 755 "$work/fakebin/id"
+  make_bundle
+  for order in "--prefix $work/p1 --system" "--system --prefix $work/p1"; do
+    rm -rf "$work/p1" "$work/checked.toml"
+    # shellcheck disable=SC2086 # $order is two options and their argument, split on purpose
+    PATH="$work/fakebin:$PATH" DEMO_ASSUME_DEFAULTS=1 DEMO_BIND=127.0.0.1:9001 DEMO_PUBLIC_URL=http://localhost:9001 \
+      sh "$here/templates/install.sh" --archive "$work/bundle.tar.gz" $order > "$work/out" 2>&1 < /dev/null || true
+    [ -x "$work/p1/bin/demo" ] || fail "$order did not install to the prefix: $(cat "$work/out")"
+    grep -q '^bind = "127.0.0.1:9001"$' "$work/checked.toml" || fail "DEMO_BIND did not preset the bind question"
+    grep -q '^public_url = "http://localhost:9001"$' "$work/checked.toml" || fail "DEMO_PUBLIC_URL did not preset the URL question"
+  done
 fi
 
 if HOME="$work/home3" sh "$here/templates/install.sh" > "$work/out" 2>&1; then fail "unbaked install.sh ran without --archive"; fi

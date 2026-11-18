@@ -23,7 +23,7 @@ The release also carries build-provenance attestations. On a connected machine, 
 
 ## Install
 
-The installer never uses the network and never calls `sudo`.
+With `--archive` the installer never uses the network. It never calls `sudo`.
 
 For your user only, into `~/.local/bin`:
 
@@ -39,6 +39,16 @@ sh install.sh --archive app-<version>-x86_64-unknown-linux-musl-offline.tar.gz -
 
 The installer checks every file against the bundle's `SHA256SUMS`. If any file has changed, it stops with "Checksum mismatch".
 
+### Online install
+
+On a machine that can reach GitHub, the installer downloads the bundle itself and checks it against the release's `SHA256SUMS`. For one release:
+
+```sh
+curl -fsSL https://github.com/OWNER/app/releases/download/v<version>/install.sh | sudo sh -s -- --system
+```
+
+For the latest release, use `https://github.com/OWNER/app/releases/latest/download/install.sh`. Leave out `sudo` and `--system` for a user install. Run the same command again to update: the latest URL moves to each new release.
+
 ## Update and rollback
 
 Run the new release's `install.sh` the same way as the first install (`--system`, as root). It finds the installed service and updates it:
@@ -50,7 +60,7 @@ Run the new release's `install.sh` the same way as the first install (`--system`
 
 The installer refuses to install an older version over a newer one ("downgrade from Y to X"), because an older binary would start on a newer database schema. It also stops with "already at X" for the same version. `APP_FORCE=1` overrides both.
 
-The check runs as root, outside the service. It uses the unit's `Environment=` lines, so drop-in overrides count. It does not read `EnvironmentFile=`, and a secret file it cannot read (such as one under `/run/credentials/`) is skipped. A setting that comes only from there is first tested when the service starts, and a failure then triggers the rollback.
+The check runs as root, outside the service. It uses the unit's `Environment=` lines, so drop-in overrides count. It does not read `EnvironmentFile=`, and a secret file it cannot read (such as one under `/run/credentials/`) is skipped. A setting that comes only from there is first tested when the service starts, and a failure then triggers the rollback. A `_FILE` variable for a setting that is not a secret, such as `APP__BIND_FILE`, must point at a file root can read, or the check fails.
 
 After a rollback, the data the new version left is kept as `/var/lib/private/app.failed.<backup name>`; delete it by hand once you no longer need it.
 

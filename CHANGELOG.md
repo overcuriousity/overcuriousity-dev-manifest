@@ -15,7 +15,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `oc-kit`: public `Buckets::new` and `take`, the `extra_hosts` config key (bare host names, matched case-insensitively; a scheme or path is refused), `qr-code`, `upload` and `file` icons, per-route body and timeout limits through `Limits.overrides`, and `config::load_for_check`, which also skips unreadable secret files in `OcConfig::app` (#2).
 - `oc-kit`: an autocomplete helper (`complete.js`) and the `CompleteField` component (#6).
 - `demo`: the `check-config` subcommand, and a note title that suggests earlier titles.
-- Templates: `install.sh` does first install, update with check-before-change, backup, rollback and a health wait, online or offline with `--archive`; `bundle.sh` bakes the version and repo into it (#7).
+- Templates: `install.sh` does first install, update with check-before-change, backup, rollback and a health wait, online or offline with `--archive`; every question has an environment preset, and `--prefix` also applies with `--system`; `bundle.sh` bakes the version and repo into it (#7).
 - Manifest: the autocomplete SHOULD in `40-interaction.md` and installer items in the review checklist.
 
 ### Changed
