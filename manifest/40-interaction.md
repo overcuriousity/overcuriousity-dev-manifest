@@ -17,7 +17,7 @@
 ## Autocomplete
 
 - SHOULD: a text field that repeats earlier input suggests from the app's own data only: history, saved setups, built-in presets. Nothing is sent anywhere, and the field has `autocomplete="off"`.
-- MUST: a suggesting field shows the rest of the best match as grey text after the caret, inside the field. Matching is case-insensitive and anchored at the start. The app hands the field its candidates ranked: same paired context first, then most recent, then most used.
+- MUST: a suggesting field shows the rest of the best match as grey text after the caret, inside the field. Matching is case-insensitive and anchored at the start. The app hands the field its candidates ranked: same paired context first, then recent or often-used, whichever fits the field.
 - MUST: in a suggesting field, Tab takes the next word; without a visible suggestion Tab moves focus as usual. Esc hides the suggestion until the text changes. A take button under the field does the same for touch screens and for text that overflows the field, keeps focus in the field, and keeps its space while idle so the layout never moves.
 - MUST: an empty suggesting field shows up to five values under it, recent or often-used, whichever fits the field. Each fills the field with one tap.
 - MUST: a suggesting field inserts a taken word through `document.execCommand('insertText')`, so undo works and the view gets an ordinary `input` event. The fallback sets the value, sends one `input`, and lets `change` follow on blur.

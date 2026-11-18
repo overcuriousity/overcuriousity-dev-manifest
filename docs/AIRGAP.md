@@ -64,7 +64,7 @@ The check runs as root, outside the service. It uses the unit's `Environment=` l
 
 After a rollback, the data the new version left is kept as `/var/lib/private/demo.failed.<backup name>`; delete it by hand once you no longer need it.
 
-If the rollback itself fails, the installer leaves the service stopped and disabled and names the backup directory. To go back by hand, stop the service, then copy from a backup directory: `demo` to `/usr/local/bin/demo`, `demo.service` to `/etc/systemd/system/`, and `state` to `/var/lib/private/demo` (`cp -a`, after moving the current one aside). Then run `systemctl daemon-reload` and `systemctl enable --now demo`.
+If the rollback itself fails, the installer leaves the service stopped and disabled and names the backup directory. To go back by hand, stop the service, then copy from a backup directory: `demo` to the installed binary (`/usr/local/bin/demo` by default, `<prefix>/bin/demo` with `--prefix`), `demo.service` to `/etc/systemd/system/`, and `state` to `/var/lib/private/demo` (`cp -a`, after moving the current one aside). Then run `systemctl daemon-reload` and `systemctl enable --now demo`.
 
 ## Installer variables
 

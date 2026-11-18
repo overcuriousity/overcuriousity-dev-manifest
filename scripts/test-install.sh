@@ -9,26 +9,26 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 make_bundle() {
-  dir="$work/build/demo-1.0.0-test"
+  dir="$work/build/oc-install-test-1.0.0-test"
   rm -rf "$work/build"
   mkdir -p "$dir"
   # check-config runs under env -i, so the config copy goes to a path baked in here.
-  cat > "$dir/demo" <<EOF
+  cat > "$dir/oc-install-test" <<EOF
 #!/bin/sh
 case "\${1:-}" in
-  --version) echo "demo 1.0.0" ;;
+  --version) echo "oc-install-test 1.0.0" ;;
   --config) cp "\$2" "$work/checked.toml"; echo bind=127.0.0.1:9001; echo public_url=http://localhost:9001 ;;
-  *) echo demo ;;
+  *) echo oc-install-test ;;
 esac
 EOF
-  chmod 755 "$dir/demo"
-  printf 'demo\n' > "$dir/name"
+  chmod 755 "$dir/oc-install-test"
+  printf 'oc-install-test\n' > "$dir/name"
   printf 'server {}\n' > "$dir/nginx.conf"
-  printf '[Unit]\n' > "$dir/demo.service"
+  printf '[Unit]\n' > "$dir/oc-install-test.service"
   printf 'bind = "127.0.0.1:8080"\n' > "$dir/config.example.toml"
-  (cd "$dir" && sha256sum demo name nginx.conf demo.service config.example.toml > SHA256SUMS)
-  if [ "${1:-}" = tamper ]; then printf 'evil\n' >> "$dir/demo"; fi
-  tar -C "$work/build" -czf "$work/bundle.tar.gz" demo-1.0.0-test
+  (cd "$dir" && sha256sum oc-install-test name nginx.conf oc-install-test.service config.example.toml > SHA256SUMS)
+  if [ "${1:-}" = tamper ]; then printf 'evil\n' >> "$dir/oc-install-test"; fi
+  tar -C "$work/build" -czf "$work/bundle.tar.gz" oc-install-test-1.0.0-test
 }
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -44,7 +44,7 @@ done
 
 make_bundle
 HOME="$work/home" sh "$here/templates/install.sh" --archive "$work/bundle.tar.gz" > "$work/out" 2>&1 || fail "user install exited non-zero: $(cat "$work/out")"
-[ -x "$work/home/.local/bin/demo" ] || fail "binary not installed to ~/.local/bin"
+[ -x "$work/home/.local/bin/oc-install-test" ] || fail "binary not installed to ~/.local/bin"
 grep -q "nginx.conf" "$work/out" || fail "install did not point at the nginx template"
 
 make_bundle tamper
@@ -67,11 +67,11 @@ if [ "$(id -u)" -ne 0 ]; then
   for order in "--prefix $work/p1 --system" "--system --prefix $work/p1"; do
     rm -rf "$work/p1" "$work/checked.toml"
     # shellcheck disable=SC2086 # $order is two options and their argument, split on purpose
-    PATH="$work/fakebin:$PATH" DEMO_ASSUME_DEFAULTS=1 DEMO_BIND=127.0.0.1:9001 DEMO_PUBLIC_URL=http://localhost:9001 \
+    PATH="$work/fakebin:$PATH" OC_INSTALL_TEST_ASSUME_DEFAULTS=1 OC_INSTALL_TEST_BIND=127.0.0.1:9001 OC_INSTALL_TEST_PUBLIC_URL=http://localhost:9001 \
       sh "$here/templates/install.sh" --archive "$work/bundle.tar.gz" $order > "$work/out" 2>&1 < /dev/null || true
-    [ -x "$work/p1/bin/demo" ] || fail "$order did not install to the prefix: $(cat "$work/out")"
-    grep -q '^bind = "127.0.0.1:9001"$' "$work/checked.toml" || fail "DEMO_BIND did not preset the bind question"
-    grep -q '^public_url = "http://localhost:9001"$' "$work/checked.toml" || fail "DEMO_PUBLIC_URL did not preset the URL question"
+    [ -x "$work/p1/bin/oc-install-test" ] || fail "$order did not install to the prefix: $(cat "$work/out")"
+    grep -q '^bind = "127.0.0.1:9001"$' "$work/checked.toml" || fail "OC_INSTALL_TEST_BIND did not preset the bind question"
+    grep -q '^public_url = "http://localhost:9001"$' "$work/checked.toml" || fail "OC_INSTALL_TEST_PUBLIC_URL did not preset the URL question"
   done
 fi
 
