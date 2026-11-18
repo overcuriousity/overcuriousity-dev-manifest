@@ -285,3 +285,20 @@ async fn upload_route_outlives_default_timeout() {
     assert_eq!(status(limited(), req("GET", "/upload/slow").body(Body::empty()).unwrap()).await, StatusCode::OK);
     assert_eq!(status(limited(), req("GET", "/slow").body(Body::empty()).unwrap()).await, StatusCode::REQUEST_TIMEOUT);
 }
+
+#[tokio::test]
+async fn content_length_over_limit_413() {
+    // An empty body never trips `Limited`, so only the header check can reject this.
+    let r = req("POST", "/write")
+        .header(header::AUTHORIZATION, "Bearer x")
+        .header(header::CONTENT_LENGTH, "500")
+        .body(Body::empty())
+        .unwrap();
+    assert_eq!(status(limited(), r).await, StatusCode::PAYLOAD_TOO_LARGE);
+    let ok = req("POST", "/upload/big")
+        .header(header::AUTHORIZATION, "Bearer x")
+        .header(header::CONTENT_LENGTH, "500")
+        .body(Body::from(vec![b'a'; 500]))
+        .unwrap();
+    assert_eq!(status(limited(), ok).await, StatusCode::OK);
+}

@@ -61,6 +61,13 @@ mod tests {
     }
 
     #[test]
+    fn trailing_slash_prefix_matches_only_below_it() {
+        let l = limits(&["/upload/"]);
+        assert_eq!(l.for_path("/upload/x"), (100, Duration::from_secs(1)));
+        assert_eq!(l.for_path("/upload"), (l.body_bytes, l.timeout));
+    }
+
+    #[test]
     fn longest_prefix_wins() {
         assert_eq!(limits(&["/a", "/a/b"]).for_path("/a/b/c"), (101, Duration::from_secs(2)));
         assert_eq!(limits(&["/a/b", "/a"]).for_path("/a/b/c"), (100, Duration::from_secs(1)));
