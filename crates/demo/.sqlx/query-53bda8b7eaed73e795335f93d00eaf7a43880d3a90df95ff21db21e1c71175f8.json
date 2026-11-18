@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT title AS \"title!\" FROM notes WHERE deleted_at IS NULL GROUP BY title ORDER BY MAX(updated_at) DESC LIMIT ?",
+  "query": "SELECT title AS \"title!\" FROM notes WHERE deleted_at IS NULL GROUP BY title ORDER BY MAX(updated_at) DESC, title LIMIT ?",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       true
     ]
   },
-  "hash": "3b39e98cc91382299cc32e8f7953759ba66b68dba0c06568b43b76fc5c4ccbeb"
+  "hash": "53bda8b7eaed73e795335f93d00eaf7a43880d3a90df95ff21db21e1c71175f8"
 }

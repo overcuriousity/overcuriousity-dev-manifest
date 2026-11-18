@@ -103,12 +103,15 @@ async fn recent_titles_distinct_newest_first() {
     let author: i64 = sqlx::query_scalar("SELECT id FROM oc_users LIMIT 1").fetch_one(&pool).await.unwrap();
     let t0 = now();
     let mut ids = Vec::new();
-    for (i, title) in ["A", "B", "A", "C"].into_iter().enumerate() {
+    for (i, title) in ["A", "B", "A", "C", "D", "D"].into_iter().enumerate() {
         let input = notes::NoteInput { title: title.into(), ..Default::default() };
         let at = t0 + time::Duration::seconds(i as i64);
         ids.push(notes::create(&pool, author, &input, at).await.unwrap());
     }
-    NotesStore(pool.clone()).soft_delete(ids[3], t0).await.unwrap();
-    assert_eq!(notes::recent_titles(&pool, 10).await.unwrap(), ["A", "B"]);
-    assert_eq!(notes::recent_titles(&pool, 1).await.unwrap(), ["A"]);
+    let store = NotesStore(pool.clone());
+    store.soft_delete(ids[3], t0).await.unwrap();
+    // D: newest note deleted, older one live; D still appears, ranked by the live one.
+    store.soft_delete(ids[5], t0).await.unwrap();
+    assert_eq!(notes::recent_titles(&pool, 10).await.unwrap(), ["D", "A", "B"]);
+    assert_eq!(notes::recent_titles(&pool, 1).await.unwrap(), ["D"]);
 }
