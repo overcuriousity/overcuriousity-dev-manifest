@@ -16,7 +16,7 @@
 - MUST: state-changing requests pass the origin check: a present `Origin` must be ours; otherwise `Sec-Fetch-Site` must be `same-origin` or `none`; with neither, the request may carry no cookie. `Origin: null` counts as absent. *Why: browsers send `Origin: null` on same-origin form posts under `no-referrer`, and no `Sec-Fetch-Site` over plain http, hence `same-origin` there.*
 - MUST: the `Host` header must be the public host (or loopback in development); otherwise 421. *Why: DNS rebinding, as the MCP spec warns.*
 - MUST: `X-Forwarded-*` is trusted only from `trusted_proxies` (default loopback).
-- MUST: rate-limit sign-in and API routes per client address; limit request bodies (default 1 MiB).
+- MUST: rate-limit sign-in and API routes per client address; limit request bodies (default 1 MiB); routes that take uploads MAY raise both limits, by path, in one place.
 - MUST: accounts are created by an admin or by a first OIDC login when `auto_provision` is on; OIDC identities match on issuer and subject, never e-mail.
 - MUST: API tokens look like `<prefix>_<id>.<secret>`, are stored as argon2 hashes and are shown once.
 - MUST: with an IdP, `/mcp` is an OAuth 2.1 resource server and `/.well-known/oauth-protected-resource` points at the IdP; without one, MCP uses app-issued tokens. NEVER: a built-in authorization server.

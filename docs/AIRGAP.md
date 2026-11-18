@@ -39,6 +39,35 @@ sh install.sh --archive demo-<version>-x86_64-unknown-linux-musl-offline.tar.gz 
 
 The installer checks every file against the bundle's `SHA256SUMS`. If any file has changed, it stops with "Checksum mismatch".
 
+## Update and rollback
+
+Run the new release's `install.sh` the same way as the first install (`--system`, as root). It finds the installed service and updates it:
+
+1. It runs the new binary's `check-config` against `/etc/demo/config.toml`. If that fails, nothing changes and the old version keeps running.
+2. It stops the service and copies the binary, the unit and the state directory to `/var/backups/demo/<UTC timestamp>/`. The newest two backups are kept; older ones are deleted.
+3. It replaces the binary. If you have not edited the unit, it replaces that too; otherwise your unit stays and the new one is written as `demo.service.new`. Drop-ins are never touched.
+4. It restarts the service and waits for it to report ready and answer `/healthz`. If either fails, it restores the backup, starts the old version and exits non-zero with "update to X failed, rolled back to Y".
+
+The installer refuses to install an older version over a newer one ("downgrade from Y to X"), because an older binary would start on a newer database schema. It also stops with "already at X" for the same version. `DEMO_FORCE=1` overrides both.
+
+The check runs as root, outside the service. It uses the unit's `Environment=` lines, so drop-in overrides count. It does not read `EnvironmentFile=`, and `file://` secret paths are checked for form only. A setting that comes only from there is first tested when the service starts, and a failure then triggers the rollback.
+
+To go back by hand, stop the service, copy the files from a backup directory back to where they came from, run `systemctl daemon-reload` and start the service.
+
+## Installer variables
+
+Set these in the environment of `sh install.sh`. Every question the installer asks has one, so it runs without a terminal.
+
+| Variable | Effect |
+|---|---|
+| `DEMO_FORCE=1` | reinstall the same version, or install an older one |
+| `DEMO_VERIFY` | unset: verify build provenance if `gh` is installed and signed in; `1`: require it; `0`: skip it. Only an online install verifies |
+| `DEMO_PUBLIC_URL` | the address users type; first install |
+| `DEMO_BIND` | the listen address, default `127.0.0.1:8080`; first install |
+| `DEMO_ASSUME_DEFAULTS=1` | take the defaults without asking, even with a terminal |
+
+Without a terminal the installer takes the defaults. If a required value such as `public_url` is missing, it stops before writing anything.
+
 ## TLS on an airgapped network
 
 The app never terminates TLS itself. By default it listens on `127.0.0.1:8080`, and nginx on the same machine serves https. For plain http instead, see below.

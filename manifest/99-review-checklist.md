@@ -14,3 +14,6 @@ Run before declaring work done. `oc-check .` covers the mechanical items; the re
 10. Phone (390 px), desktop and ultrawide checked; touch targets 44 px.
 11. `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `cargo deny check` are green.
 12. CHANGELOG updated; the airgap bundle still builds.
+13. `install.sh` handles first install, update and rollback, and `--archive` stays offline.
+14. `check-config` exists and never touches data.
+15. `/healthz` answers.
