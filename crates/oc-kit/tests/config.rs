@@ -128,3 +128,14 @@ fn check_load_still_validates() {
     let e = load_for_check::<OcConfig>("tchk3", Some(&path)).unwrap_err();
     assert!(e.to_string().contains("bnid"), "{e}");
 }
+
+#[test]
+fn check_load_reads_env_files_it_can() {
+    let dir = tempfile::tempdir().unwrap();
+    let f = dir.path().join("bind");
+    std::fs::write(&f, "127.0.0.1:9999\n").unwrap();
+    temp_env::with_vars([("TCHK4__BIND_FILE", Some(f.to_str().unwrap()))], || {
+        let c = load_for_check::<OcConfig>("tchk4", None).unwrap();
+        assert_eq!(c.bind.port(), 9999);
+    });
+}

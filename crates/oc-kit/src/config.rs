@@ -123,10 +123,11 @@ impl<'de> Deserialize<'de> for Secret {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let raw = String::deserialize(d)?;
         match raw.strip_prefix("file://") {
-            Some(_) if NO_READ.with(Cell::get) => Ok(Secret(raw)),
-            Some(path) => std::fs::read_to_string(path)
-                .map(|s| Secret(s.trim_end_matches(['\n', '\r']).to_owned()))
-                .map_err(|e| serde::de::Error::custom(format!("Cannot read secret file {path}: {e}."))),
+            Some(path) => match std::fs::read_to_string(path) {
+                Ok(s) => Ok(Secret(s.trim_end_matches(['\n', '\r']).to_owned())),
+                Err(_) if NO_READ.with(Cell::get) => Ok(Secret(raw)),
+                Err(e) => Err(serde::de::Error::custom(format!("Cannot read secret file {path}: {e}."))),
+            },
             None => Ok(Secret(raw)),
         }
     }
@@ -138,9 +139,10 @@ pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, Oc
     load_inner(app, file, true)
 }
 
-/// Like [`load`], but reads no secret files: `file://` secrets stay as placeholders and
-/// `_FILE` variables merge the literal `file://<path>`. For `check-config` run outside the
-/// service, where `/run/credentials/...` does not exist. Everything else is still validated.
+/// Like [`load`], but a secret file that cannot be read is not an error: `file://` secrets
+/// stay as placeholders and `_FILE` variables merge the literal `file://<path>`. For
+/// `check-config` run outside the service, where `/run/credentials/...` does not exist.
+/// Readable files are read as usual, so non-string keys still type-check.
 pub fn load_for_check<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, OcError> {
     let _guard = NoReadGuard::set();
     load_inner(app, file, false)
@@ -164,12 +166,14 @@ fn load_inner<T: DeserializeOwned>(app: &str, file: Option<&Path>, read_files: b
             continue;
         };
         let key = name.to_ascii_lowercase().replace("__", ".");
-        if !read_files {
-            fig = fig.merge((key, format!("file://{value}")));
-            continue;
-        }
-        let content = std::fs::read_to_string(&value)
-            .map_err(|e| OcError::Config(format!("Cannot read {key} from {value}: {e}.")))?;
+        let content = match std::fs::read_to_string(&value) {
+            Ok(c) => c,
+            Err(_) if !read_files => {
+                fig = fig.merge((key, format!("file://{value}")));
+                continue;
+            }
+            Err(e) => return Err(OcError::Config(format!("Cannot read {key} from {value}: {e}."))),
+        };
         let parsed: figment::value::Value = content
             .trim_end_matches(['\n', '\r'])
             .parse()
