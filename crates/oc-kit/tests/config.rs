@@ -139,3 +139,52 @@ fn check_load_reads_env_files_it_can() {
         assert_eq!(c.bind.port(), 9999);
     });
 }
+
+#[derive(Debug, Default, serde::Deserialize)]
+struct AppSettings {
+    key: Option<oc_kit::config::Secret>,
+}
+
+#[test]
+fn check_load_skips_app_secret_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("c.toml");
+    std::fs::write(&path, "[app]\nkey = \"file:///nonexistent/k\"\n").unwrap();
+    let c = load_for_check::<OcConfig>("tchk5", Some(&path)).unwrap();
+    assert_eq!(c.app::<AppSettings>().unwrap().key.unwrap().expose(), "file:///nonexistent/k");
+    let c = load::<OcConfig>("tchk5", Some(&path)).unwrap();
+    assert!(c.app::<AppSettings>().is_err());
+}
+
+#[test]
+fn check_load_skips_app_env_files() {
+    temp_env::with_vars([("TCHK6__APP__KEY_FILE", Some("/nonexistent/k"))], || {
+        let c = load_for_check::<OcConfig>("tchk6", None).unwrap();
+        assert_eq!(c.app::<AppSettings>().unwrap().key.unwrap().expose(), "file:///nonexistent/k");
+    });
+}
+
+#[test]
+fn extra_hosts_with_a_scheme_path_or_space_are_refused() {
+    for bad in ["https://s.example.org", "s.example.org/", "s .example.org"] {
+        let c = OcConfig {
+            public_url: Some("https://app.example.org".parse().unwrap()),
+            extra_hosts: vec![bad.into()],
+            ..OcConfig::default()
+        };
+        let e = c.deployment().unwrap_err();
+        assert!(e.to_string().contains("extra_hosts"), "{bad}: {e}");
+    }
+}
+
+#[test]
+fn extra_hosts_match_case_insensitively() {
+    let c = OcConfig {
+        public_url: Some("https://app.example.org".parse().unwrap()),
+        extra_hosts: vec!["S.Example.org".into()],
+        ..OcConfig::default()
+    };
+    let d = c.deployment().unwrap();
+    assert!(d.host_allowed("s.example.org") && d.host_allowed("S.EXAMPLE.ORG"));
+    assert!(!d.host_allowed("t.example.org"));
+}

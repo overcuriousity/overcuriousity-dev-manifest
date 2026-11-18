@@ -17,8 +17,8 @@ pub struct OcConfig {
     pub public_url: Option<Url>,
     /// Accept an `http://` `public_url` on a non-loopback host, for a LAN without TLS.
     pub allow_plain_http: bool,
-    /// More host names to answer for, such as a short-link domain. Writes still need
-    /// `public_url`'s origin, so a request from one of these cannot change state.
+    /// More bare host names to answer for, such as a short-link domain, matched case-insensitively.
+    /// Writes still need `public_url`'s origin, so a request from one of these cannot change state.
     pub extra_hosts: Vec<String>,
     pub bind: SocketAddr,
     pub trusted_proxies: Vec<IpNet>,
@@ -26,6 +26,13 @@ pub struct OcConfig {
     pub auth: AuthConfig,
     /// The app's own settings under `[app]`, read with [`OcConfig::app`].
     pub app: Option<figment::value::Value>,
+    /// Set by [`load_for_check`], so [`OcConfig::app`] skips unreadable secret files too.
+    #[serde(skip, default = "check_mode")]
+    pub check_only: bool,
+}
+
+fn check_mode() -> bool {
+    NO_READ.with(Cell::get)
 }
 
 impl Default for OcConfig {
@@ -39,6 +46,7 @@ impl Default for OcConfig {
             data_dir: None,
             auth: AuthConfig::default(),
             app: None,
+            check_only: false,
         }
     }
 }
@@ -142,7 +150,9 @@ pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, Oc
 /// Like [`load`], but a secret file that cannot be read is not an error: `file://` secrets
 /// stay as placeholders and `_FILE` variables merge the literal `file://<path>`. For
 /// `check-config` run outside the service, where `/run/credentials/...` does not exist.
-/// Readable files are read as usual, so non-string keys still type-check.
+/// Readable files are read as usual, so non-string keys still type-check. A `_FILE` target for
+/// a key that is not a [`Secret`] must therefore be readable, or the placeholder fails its type.
+/// An [`OcConfig`] loaded this way keeps the mode for [`OcConfig::app`].
 pub fn load_for_check<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, OcError> {
     let _guard = NoReadGuard::set();
     load_inner(app, file, false)
@@ -207,7 +217,8 @@ impl Deployment {
                 .iter()
                 .any(|n| host == format!("{n}:{}", self.port) || (self.port == 80 && host == *n));
         }
-        if self.extra_hosts.iter().any(|h| h == host) {
+        let host = host.to_ascii_lowercase();
+        if self.extra_hosts.contains(&host) {
             return true;
         }
         let expected = self.public_url.host_str().unwrap_or_default();
@@ -228,7 +239,11 @@ impl Deployment {
 impl OcConfig {
     pub fn app<T: DeserializeOwned + Default>(&self) -> Result<T, OcError> {
         match &self.app {
-            Some(v) => v.deserialize().map_err(|e| OcError::Config(format!("Invalid [app] configuration: {e}."))),
+            Some(v) => {
+                let _guard = self.check_only.then(NoReadGuard::set);
+                v.deserialize()
+            }
+            .map_err(|e| OcError::Config(format!("Invalid [app] configuration: {e}."))),
             None => Ok(T::default()),
         }
     }
@@ -250,6 +265,15 @@ impl OcConfig {
     }
 
     pub fn deployment(&self) -> Result<Deployment, OcError> {
+        let mut extra_hosts = Vec::with_capacity(self.extra_hosts.len());
+        for h in &self.extra_hosts {
+            if h.is_empty() || h.contains('/') || h.contains(char::is_whitespace) {
+                return Err(OcError::Config(format!(
+                    "extra_hosts entry {h:?} must be a bare host name, such as s.example.org, without scheme or path."
+                )));
+            }
+            extra_hosts.push(h.to_ascii_lowercase());
+        }
         let loopback_bind = self.bind.ip().is_loopback();
         let Some(url) = &self.public_url else {
             if !loopback_bind {
@@ -286,7 +310,7 @@ impl OcConfig {
             secure_context: secure || is_loopback_host,
             rp_id: host,
             public_url: url.clone(),
-            extra_hosts: self.extra_hosts.clone(),
+            extra_hosts,
             port: url.port_or_known_default().unwrap_or(443),
             loopback_dev: false,
         })
