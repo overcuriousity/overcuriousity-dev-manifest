@@ -6,7 +6,7 @@ use axum::routing::{get, post};
 use axum::{Form, Router};
 use oc_kit::OcError;
 use oc_kit::trash::{SoftDelete, undo_notice};
-use oc_kit::ui::{Button, Empty, Fact, Facts, Html, HxAttrs, Icon, Notice, SearchBox, Select};
+use oc_kit::ui::{Button, CompleteField, Empty, Fact, Facts, Html, HxAttrs, Icon, Notice, SearchBox, Select};
 use serde::Deserialize;
 
 use super::{Ctx, everyday, paragraphs, render, when};
@@ -85,7 +85,7 @@ struct Related<'a> {
 struct NoteForm {
     action: String,
     heading: &'static str,
-    title: String,
+    title_field: CompleteField,
     body: String,
     tags: String,
     case: Select,
@@ -253,6 +253,19 @@ async fn case_select(st: &AppState, selected: Option<i64>) -> Result<Select, OcE
     })
 }
 
+async fn title_field(st: &AppState, value: String) -> Result<CompleteField, OcError> {
+    Ok(CompleteField {
+        id: "note-title".into(),
+        name: "title".into(),
+        label: "Title".into(),
+        value,
+        candidates: notes::recent_titles(&st.pool, 50).await?,
+        attrs: HxAttrs::new(),
+        required: true,
+        maxlength: Some(200),
+    })
+}
+
 async fn form_page(st: &AppState, ctx: &Ctx, form: NoteForm) -> Result<oc_kit::ui::Page, OcError> {
     page_with(st, ctx, "", None, render(&form), "detail", false).await
 }
@@ -261,7 +274,7 @@ async fn new_form(State(st): State<AppState>, ctx: Ctx) -> Result<Response, OcEr
     let form = NoteForm {
         action: "/notes".into(),
         heading: "New note",
-        title: String::new(),
+        title_field: title_field(&st, String::new()).await?,
         body: String::new(),
         tags: String::new(),
         case: case_select(&st, None).await?,
@@ -276,7 +289,7 @@ async fn edit_form(State(st): State<AppState>, ctx: Ctx, Path(id): Path<i64>) ->
     let form = NoteForm {
         action: format!("/notes/{id}"),
         heading: "Edit note",
-        title: n.title.clone(),
+        title_field: title_field(&st, n.title.clone()).await?,
         body: n.body.clone(),
         tags: n.tags.join(", "),
         case: case_select(&st, n.case_id).await?,
@@ -297,7 +310,7 @@ async fn rejected(
     let form = NoteForm {
         action,
         heading: "Fix the note",
-        title: f.title.clone(),
+        title_field: title_field(st, f.title.clone()).await?,
         body: f.body.clone(),
         tags: f.tags.clone(),
         case: case_select(st, f.case_id.parse().ok()).await?,
