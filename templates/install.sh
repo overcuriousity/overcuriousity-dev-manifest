@@ -232,7 +232,7 @@ main() {
       n=$((n + 1))
       bdir="/var/backups/$app/$stamp-$n"
     done
-    trap 'rm -rf "$bdir"; systemctl start "$app"; die "Interrupted during the backup; nothing changed."' INT TERM HUP
+    trap 'rm -rf "$bdir"; systemctl start "$app" || true; die "Interrupted during the backup; nothing changed."' INT TERM HUP
     # Stopped first so the SQLite files, WAL included, are consistent.
     systemctl stop "$app"
     # DynamicUser keeps StateDirectory under /var/lib/private.
@@ -261,8 +261,9 @@ main() {
   }
 
   # Called as `... || rollback` or from a signal trap, so every step is checked by hand.
+  # Signals are ignored from here on; rollback always ends the script.
   rollback() {
-    trap - INT TERM HUP
+    trap '' INT TERM HUP
     rb_ok=1
     systemctl stop "$app" 2>/dev/null || true
     { cp -a "$bdir/$app" "$bin.new" && mv -f "$bin.new" "$bin"; } || rb_ok=0
@@ -274,7 +275,7 @@ main() {
     fi
     # Only a started new binary can have migrated the data.
     if [ "$rb_ok" = 1 ] && [ "$new_ran" = 1 ] && [ -n "$state" ]; then
-      failed="$state.failed.$stamp"
+      failed="$state.failed.$(basename "$bdir")"
       if mv "$state" "$failed"; then
         if cp -a "$bdir/state" "$state"; then
           say "The data the new version left is in $failed."

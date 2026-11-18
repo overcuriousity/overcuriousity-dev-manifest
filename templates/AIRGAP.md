@@ -52,6 +52,8 @@ The installer refuses to install an older version over a newer one ("downgrade f
 
 The check runs as root, outside the service. It uses the unit's `Environment=` lines, so drop-in overrides count. It does not read `EnvironmentFile=`, and a secret file it cannot read (such as one under `/run/credentials/`) is skipped. A setting that comes only from there is first tested when the service starts, and a failure then triggers the rollback.
 
+After a rollback, the data the new version left is kept as `/var/lib/private/app.failed.<backup name>`; delete it by hand once you no longer need it.
+
 If the rollback itself fails, the installer leaves the service stopped and disabled and names the backup directory. To go back by hand, stop the service, then copy from a backup directory: `app` to `/usr/local/bin/app`, `app.service` to `/etc/systemd/system/`, and `state` to `/var/lib/private/app` (`cp -a`, after moving the current one aside). Then run `systemctl daemon-reload` and `systemctl enable --now app`.
 
 ## Installer variables
