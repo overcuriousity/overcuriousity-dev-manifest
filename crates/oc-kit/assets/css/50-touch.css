@@ -6,6 +6,7 @@
   .oc-row-actions [data-oc-reveal] { visibility: visible; }
   .oc-input { font-size: 16px; min-height: var(--target-touch); }
   .oc-complete__ghost { font-size: 16px; }
+  .oc-complete__slot { height: var(--target-touch); }
   .oc-topbar { padding-left: max(var(--space-3), env(safe-area-inset-left)); padding-right: max(var(--space-3), env(safe-area-inset-right)); }
   .oc-menu [role="option"], .oc-menu [role="menuitem"] { min-height: var(--target-touch); }
 }

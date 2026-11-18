@@ -166,11 +166,14 @@ textarea.oc-input { height: auto; min-height: 8rem; padding: var(--space-2) var(
   pointer-events: none;
 }
 .oc-complete__typed { color: transparent; }
-.oc-complete__take { align-self: flex-start; }
-/* Inert parts keep their space so the form never moves under the pointer. */
-.oc-complete [inert] { visibility: hidden; }
-.oc-complete__recent { display: flex; flex-wrap: wrap; gap: var(--space-1); }
-.oc-complete__recent > .oc-btn { max-width: 100%; font-weight: 400; }
+/* Take button and recent row stack in one fixed-height slot; the inert one is invisible,
+   so neither typing nor blur moves the form. */
+.oc-complete__slot { display: grid; height: var(--target-tool); }
+.oc-complete__slot > * { grid-area: 1 / 1; min-width: 0; }
+.oc-complete__slot > [inert] { visibility: hidden; }
+.oc-complete__take { justify-self: start; }
+.oc-complete__recent { display: flex; gap: var(--space-1); overflow-x: auto; scrollbar-width: none; }
+.oc-complete__recent > .oc-btn { flex: none; max-width: 16rem; font-weight: 400; }
 .oc-complete__recent > .oc-btn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 .oc-search { position: relative; width: 100%; max-width: 36rem; }

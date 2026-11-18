@@ -60,7 +60,7 @@ export function attach(input, { candidates, recent }) {
 
   const atEnd = () => input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
 
-  // The row keeps its space while the field has text, so nothing below it moves while typing.
+  // Empty field: recent row; text: take button. Both share one slot, so only visibility changes.
   const renderRecent = () => {
     row.inert = input.value !== "";
     const values = (recent?.() ?? []).slice(0, 5);
@@ -83,7 +83,6 @@ export function attach(input, { candidates, recent }) {
         return b;
       }),
     );
-    row.hidden = values.length === 0;
   };
 
   const update = () => {
@@ -153,7 +152,6 @@ export function attach(input, { candidates, recent }) {
     clearTimeout(timer);
     typed.textContent = tail.textContent = "";
     take.inert = true;
-    row.hidden = true;
     row.replaceChildren();
     attached.delete(input);
   };
