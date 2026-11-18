@@ -1,5 +1,6 @@
 // Inline suggestions from the app's own data. Ranking is the caller's job: the first match wins.
 // attach() expects the markup of the kit's complete-field component around the input.
+// Attaching an already attached input returns its existing detach and ignores the new options.
 
 export function rest(text, candidates) {
   if (!text) return "";
@@ -54,6 +55,7 @@ export function attach(input, { candidates, recent }) {
   let pendingChange = false;
   let timer;
   let current = "";
+  let visible = false;
   let shownRecent;
 
   const atEnd = () => input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
@@ -88,9 +90,9 @@ export function attach(input, { candidates, recent }) {
     const focused = document.activeElement === input;
     current = focused && !dismissed && atEnd() ? rest(input.value, candidates()) : "";
     // Overflowing text leaves no room after the caret; the take button still works.
-    const show = current && input.scrollWidth <= input.clientWidth;
-    typed.textContent = show ? input.value : "";
-    tail.textContent = show ? current : "";
+    visible = Boolean(current) && input.scrollWidth <= input.clientWidth;
+    typed.textContent = visible ? input.value : "";
+    tail.textContent = visible ? current : "";
     take.inert = !current;
     renderRecent();
     // The input scrolls to the caret only after layout.
@@ -112,7 +114,7 @@ export function attach(input, { candidates, recent }) {
   };
   const onKey = (e) => {
     // keyCode 229: Safari's composition keydowns.
-    if (e.isComposing || e.keyCode === 229 || !current) return;
+    if (e.isComposing || e.keyCode === 229 || !visible) return;
     if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
       takeWord();
@@ -193,7 +195,8 @@ if (typeof document !== "undefined") {
   document.addEventListener("htmx:afterSwap", (e) => scan(e.target));
   // A restored history snapshot holds fresh, unwired inputs.
   document.addEventListener("htmx:historyRestore", () => scan(document));
+  // htmx fires this on every element it removes, descendants included.
   document.addEventListener("htmx:beforeCleanupElement", (e) => {
-    for (const input of within(e.target, "input")) attached.get(input)?.();
+    if (e.target.matches?.("input")) attached.get(e.target)?.();
   });
 }
