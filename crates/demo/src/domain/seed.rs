@@ -1,6 +1,6 @@
 //! Synthetic, deterministic incident data. Every value is invented.
 
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use sqlx::SqlitePool;
 use time::OffsetDateTime;
@@ -90,15 +90,15 @@ const INTEGRITY: [&str; 4] = ["Low", "Medium", "High", "System"];
 const SEED_END_MS: i64 = 1_793_145_600_000;
 const DAY_MS: i64 = 86_400_000;
 
-fn pick<'a, T>(rng: &mut impl Rng, items: &'a [T]) -> &'a T {
+fn pick<'a, T>(rng: &mut impl RngExt, items: &'a [T]) -> &'a T {
     &items[rng.random_range(0..items.len())]
 }
 
-fn hex(rng: &mut impl Rng, len: usize) -> String {
+fn hex(rng: &mut impl RngExt, len: usize) -> String {
     (0..len).map(|_| char::from(b"0123456789abcdef"[rng.random_range(0..16)])).collect()
 }
 
-pub fn event(rng: &mut impl Rng, ts: i64, record: i64) -> NewEvent {
+pub fn event(rng: &mut impl RngExt, ts: i64, record: i64) -> NewEvent {
     let (event_id, level, source, message) = *pick(rng, &EVENT_IDS);
     let (process, cmd) = *pick(rng, &PROCESSES);
     let host = *pick(rng, &HOSTS);

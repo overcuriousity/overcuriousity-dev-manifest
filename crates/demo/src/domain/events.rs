@@ -93,7 +93,7 @@ fn column(field: &str) -> Option<&'static str> {
     })
 }
 
-fn push_filter(qb: &mut QueryBuilder<'_, Sqlite>, case_id: i64, q: &Query) {
+fn push_filter(qb: &mut QueryBuilder<Sqlite>, case_id: i64, q: &Query) {
     qb.push(" WHERE case_id = ").push_bind(case_id);
     for term in &q.terms {
         match term {

@@ -92,7 +92,7 @@ async fn serve(cfg: OcConfig, settings: Settings, pool: sqlx::SqlitePool) -> Res
         .await
         .map_err(|e| oc_kit::OcError::Config(format!("Cannot listen on {}: {e}.", cfg.bind)))?;
     tracing::info!("Listening on {}", cfg.deployment()?.origin);
-    let _ = sd_notify::notify(false, &[sd_notify::NotifyState::Ready]);
+    let _ = sd_notify::notify(&[sd_notify::NotifyState::Ready]);
     spawn_watchdog();
     axum::serve(listener, router.into_make_service_with_connect_info::<std::net::SocketAddr>())
         .with_graceful_shutdown(shutdown())
@@ -101,15 +101,14 @@ async fn serve(cfg: OcConfig, settings: Settings, pool: sqlx::SqlitePool) -> Res
 }
 
 fn spawn_watchdog() {
-    let mut usec = 0;
-    if !sd_notify::watchdog_enabled(false, &mut usec) {
+    let Some(timeout) = sd_notify::watchdog_enabled() else {
         return;
-    }
-    let every = std::time::Duration::from_micros(usec / 2);
+    };
+    let every = timeout / 2;
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(every).await;
-            let _ = sd_notify::notify(false, &[sd_notify::NotifyState::Watchdog]);
+            let _ = sd_notify::notify(&[sd_notify::NotifyState::Watchdog]);
         }
     });
 }
@@ -124,5 +123,5 @@ async fn shutdown() {
         _ = ctrl_c => {},
         _ = term.recv() => {},
     }
-    let _ = sd_notify::notify(false, &[sd_notify::NotifyState::Stopping]);
+    let _ = sd_notify::notify(&[sd_notify::NotifyState::Stopping]);
 }

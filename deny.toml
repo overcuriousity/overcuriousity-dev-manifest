@@ -9,6 +9,7 @@ ignore = [
   { id = "RUSTSEC-2023-0071", reason = "rsa Marvin attack needs private-key decryption; webauthn-rs and JWT validation only verify signatures with public keys." },
   { id = "RUSTSEC-2026-0387", reason = "crypto-bigint 0.5 is pulled in by p256/p384 for JWT signature verification, which only handles public keys and public data." },
   { id = "RUSTSEC-2026-0374", reason = "basic-toml is used by askama_derive at compile time to read askama.toml; it never parses untrusted input at runtime." },
+  { id = "RUSTSEC-2026-0543", reason = "chrono is unmaintained, with no known vulnerability and no safe upgrade. It is a transitive dependency of oauth2, openidconnect and rmcp. Replace it when those crates move off it." },
 ]
 
 [licenses]
