@@ -149,6 +149,33 @@ textarea.oc-input { height: auto; min-height: 8rem; padding: var(--space-2) var(
 .oc-form { display: flex; flex-direction: column; gap: var(--space-4); max-width: 36rem; }
 .oc-form__actions { display: flex; gap: var(--space-2); }
 
+/* The ghost overlays the input with the same border, padding and font, so the transparent
+   typed copy pushes the grey rest to the caret. */
+.oc-complete__box { position: relative; display: flex; }
+.oc-complete__box > .oc-input { flex: 1; }
+.oc-complete__ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  overflow: hidden;
+  white-space: pre;
+  color: var(--color-fg-muted);
+  pointer-events: none;
+}
+.oc-complete__typed { color: transparent; }
+/* Take button and recent row stack in one fixed-height slot; the inert one is invisible,
+   so neither typing nor blur moves the form. */
+.oc-complete__slot { display: grid; height: var(--target-tool); }
+.oc-complete__slot > * { grid-area: 1 / 1; min-width: 0; }
+.oc-complete__slot > [inert] { visibility: hidden; }
+.oc-complete__take { justify-self: start; }
+.oc-complete__recent { display: flex; gap: var(--space-1); overflow-x: auto; scrollbar-width: none; }
+.oc-complete__recent > .oc-btn { flex: none; max-width: 16rem; font-weight: 400; }
+.oc-complete__recent > .oc-btn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
 .oc-search { position: relative; width: 100%; max-width: 36rem; }
 .oc-search > .oc-icon { position: absolute; left: var(--space-2); top: 50%; translate: 0 -50%; color: var(--color-fg-muted); pointer-events: none; }
 .oc-search > .oc-input { width: 100%; height: var(--target-tool); padding-left: 2rem; }

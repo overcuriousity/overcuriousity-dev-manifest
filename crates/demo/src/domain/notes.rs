@@ -132,6 +132,16 @@ async fn set_tags(pool: &SqlitePool, id: i64, tags: &[String]) -> Result<(), OcE
     Ok(())
 }
 
+/// Distinct titles of live notes, most recently updated first.
+pub async fn recent_titles(pool: &SqlitePool, limit: i64) -> Result<Vec<String>, OcError> {
+    Ok(sqlx::query_scalar!(
+        "SELECT title AS \"title!\" FROM notes WHERE deleted_at IS NULL GROUP BY title ORDER BY MAX(updated_at) DESC, title LIMIT ?",
+        limit
+    )
+    .fetch_all(pool)
+    .await?)
+}
+
 pub async fn create(pool: &SqlitePool, author_id: i64, input: &NoteInput, now: OffsetDateTime) -> Result<i64, OcError> {
     input.validate()?;
     let title = input.title.trim();

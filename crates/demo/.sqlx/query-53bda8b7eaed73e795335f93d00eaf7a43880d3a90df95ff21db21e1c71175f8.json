@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT title AS \"title!\" FROM notes WHERE deleted_at IS NULL GROUP BY title ORDER BY MAX(updated_at) DESC, title LIMIT ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "title!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "53bda8b7eaed73e795335f93d00eaf7a43880d3a90df95ff21db21e1c71175f8"
+}

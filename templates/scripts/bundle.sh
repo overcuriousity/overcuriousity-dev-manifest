@@ -2,6 +2,7 @@
 # Builds the offline release bundles from the musl binaries in DIST/bin:
 # one archive per target (binary, install files, licences, SHA256SUMS) plus a vendored source archive.
 # Paths can be overridden: INSTALL_SH, SERVICE, NGINX, AIRGAP, CONFIG.
+# REPO (owner/name, default $GITHUB_REPOSITORY) is the release install.sh downloads from.
 set -eu
 
 app=$1
@@ -12,8 +13,11 @@ service=${SERVICE:-deploy/app.service}
 nginx=${NGINX:-deploy/nginx.conf}
 airgap=${AIRGAP:-AIRGAP.md}
 config=${CONFIG:-config.example.toml}
+repo=${REPO:-${GITHUB_REPOSITORY:-}}
+[ -n "$repo" ] || { echo "Set REPO=owner/name; install.sh downloads its release from there." >&2; exit 1; }
 out="$dist/out"
 mkdir -p "$out"
+sed -e "s|@APP@|$app|g" -e "s|@VERSION@|$version|g" -e "s|@REPO@|$repo|g" "$install_sh" > "$dist/install.sh"
 
 mkdir -p "$dist/src/.cargo"
 git archive --format=tar HEAD | tar -C "$dist/src" -xf -
@@ -39,9 +43,9 @@ for target in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do
   cp "$airgap" "$dir/AIRGAP.md"
   cp "$config" "$dir/config.example.toml"
   cp "$dist/THIRD-PARTY-LICENSES" "$dir/THIRD-PARTY-LICENSES"
-  cp "$install_sh" "$dir/install.sh"
+  cp "$dist/install.sh" "$dir/install.sh"
   (cd "$dir" && sha256sum -- * | grep -v ' SHA256SUMS$' > SHA256SUMS)
   tar -C "$dist" -czf "$out/$name-offline.tar.gz" "$name"
 done
-cp "$install_sh" "$out/install.sh"
+cp "$dist/install.sh" "$out/install.sh"
 (cd "$out" && sha256sum -- *.tar.gz install.sh > SHA256SUMS)

@@ -4,6 +4,7 @@
 
 # The address users see. Required unless the app is reached via localhost.
 # public_url = "https://app.example.org"
+# extra_hosts = ["s.example.org"]  # bare host names, no scheme or path; writes still need public_url's origin
 # Plain http on a non-loopback host: cookies lose Secure, passkeys are off. See AIRGAP.md.
 # allow_plain_http = false
 

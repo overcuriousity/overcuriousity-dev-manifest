@@ -1,6 +1,6 @@
 //! App-issued API tokens: `{prefix}_{id}.{secret}`. The id is a public lookup key; only an argon2 hash of the secret is stored.
 
-use rand::Rng;
+use rand::RngExt;
 use sqlx::SqlitePool;
 use time::OffsetDateTime;
 

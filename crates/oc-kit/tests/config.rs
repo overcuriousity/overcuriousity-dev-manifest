@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use oc_kit::config::{OcConfig, load};
+use oc_kit::config::{OcConfig, load, load_for_check};
 
 fn cfg(toml: &str) -> OcConfig {
     let dir = tempfile::tempdir().unwrap();
@@ -94,4 +94,97 @@ fn any_key_can_be_read_from_a_file() {
         let c = load::<OcConfig>("ocfile", None).unwrap();
         assert_eq!(c.public_url.unwrap().as_str(), "https://notes.example/");
     });
+}
+
+const OIDC_TOML: &str = "[auth.oidc]\nissuer = \"https://idp.example\"\nclient_id = \"app\"\n";
+
+#[test]
+fn check_load_skips_secret_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("c.toml");
+    std::fs::write(&path, format!("{OIDC_TOML}client_secret = \"file:///nonexistent/x\"\n")).unwrap();
+    assert!(load::<OcConfig>("tchk1", Some(&path)).is_err());
+    assert!(load_for_check::<OcConfig>("tchk1", Some(&path)).is_ok());
+    // The skip must not outlive the call.
+    assert!(load::<OcConfig>("tchk1", Some(&path)).is_err());
+}
+
+#[test]
+fn check_load_skips_env_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("c.toml");
+    std::fs::write(&path, OIDC_TOML).unwrap();
+    temp_env::with_vars([("TCHK2__AUTH__OIDC__CLIENT_SECRET_FILE", Some("/nonexistent/y"))], || {
+        assert!(load::<OcConfig>("tchk2", Some(&path)).is_err());
+        assert!(load_for_check::<OcConfig>("tchk2", Some(&path)).is_ok());
+    });
+}
+
+#[test]
+fn check_load_still_validates() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("c.toml");
+    std::fs::write(&path, "bnid = \"x\"").unwrap();
+    let e = load_for_check::<OcConfig>("tchk3", Some(&path)).unwrap_err();
+    assert!(e.to_string().contains("bnid"), "{e}");
+}
+
+#[test]
+fn check_load_reads_env_files_it_can() {
+    let dir = tempfile::tempdir().unwrap();
+    let f = dir.path().join("bind");
+    std::fs::write(&f, "127.0.0.1:9999\n").unwrap();
+    temp_env::with_vars([("TCHK4__BIND_FILE", Some(f.to_str().unwrap()))], || {
+        let c = load_for_check::<OcConfig>("tchk4", None).unwrap();
+        assert_eq!(c.bind.port(), 9999);
+    });
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+struct AppSettings {
+    key: Option<oc_kit::config::Secret>,
+}
+
+#[test]
+fn check_load_skips_app_secret_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("c.toml");
+    std::fs::write(&path, "[app]\nkey = \"file:///nonexistent/k\"\n").unwrap();
+    let c = load_for_check::<OcConfig>("tchk5", Some(&path)).unwrap();
+    assert_eq!(c.app::<AppSettings>().unwrap().key.unwrap().expose(), "file:///nonexistent/k");
+    let c = load::<OcConfig>("tchk5", Some(&path)).unwrap();
+    assert!(c.app::<AppSettings>().is_err());
+}
+
+#[test]
+fn check_load_skips_app_env_files() {
+    temp_env::with_vars([("TCHK6__APP__KEY_FILE", Some("/nonexistent/k"))], || {
+        let c = load_for_check::<OcConfig>("tchk6", None).unwrap();
+        assert_eq!(c.app::<AppSettings>().unwrap().key.unwrap().expose(), "file:///nonexistent/k");
+    });
+}
+
+#[test]
+fn extra_hosts_with_a_scheme_path_or_space_are_refused() {
+    for bad in ["https://s.example.org", "s.example.org/", "s .example.org"] {
+        let c = OcConfig {
+            public_url: Some("https://app.example.org".parse().unwrap()),
+            extra_hosts: vec![bad.into()],
+            ..OcConfig::default()
+        };
+        let e = c.deployment().unwrap_err();
+        assert!(e.to_string().contains("extra_hosts"), "{bad}: {e}");
+    }
+}
+
+#[test]
+fn extra_hosts_match_case_insensitively() {
+    let c = OcConfig {
+        public_url: Some("https://app.example.org".parse().unwrap()),
+        extra_hosts: vec!["S.Example.org".into()],
+        ..OcConfig::default()
+    };
+    let d = c.deployment().unwrap();
+    assert!(d.host_allowed("s.example.org") && d.host_allowed("S.EXAMPLE.ORG"));
+    assert!(!d.host_allowed("t.example.org"));
 }

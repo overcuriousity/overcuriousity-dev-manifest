@@ -23,7 +23,7 @@ The release also carries build-provenance attestations. On a connected machine, 
 
 ## Install
 
-The installer never uses the network and never calls `sudo`.
+With `--archive` the installer never uses the network. It never calls `sudo`.
 
 For your user only, into `~/.local/bin`:
 
@@ -38,6 +38,47 @@ sh install.sh --archive demo-<version>-x86_64-unknown-linux-musl-offline.tar.gz 
 ```
 
 The installer checks every file against the bundle's `SHA256SUMS`. If any file has changed, it stops with "Checksum mismatch".
+
+### Online install
+
+On a machine that can reach GitHub, the installer downloads the bundle itself and checks it against the release's `SHA256SUMS`. For one release:
+
+```sh
+curl -fsSL https://github.com/overcuriousity/overcuriousity-dev-manifest/releases/download/v<version>/install.sh | sudo sh -s -- --system
+```
+
+For the latest release, use `https://github.com/overcuriousity/overcuriousity-dev-manifest/releases/latest/download/install.sh`. Leave out `sudo` and `--system` for a user install. Run the same command again to update: the latest URL moves to each new release.
+
+## Update and rollback
+
+Run the new release's `install.sh` the same way as the first install (`--system`, as root). It finds the installed service and updates it:
+
+1. It runs the new binary's `check-config` against `/etc/demo/config.toml`. If that fails, nothing changes and the old version keeps running.
+2. It stops the service and copies the binary, the unit and the state directory to `/var/backups/demo/<UTC timestamp>/`. The newest two backups are kept; older ones are deleted.
+3. It replaces the binary. If you have not edited the unit, it replaces that too; otherwise your unit stays and the new one is written as `demo.service.new`. Drop-ins are never touched.
+4. It restarts the service and waits for it to report ready and answer `/healthz`. If either fails, it restores the backup, starts the old version and exits non-zero with "update to X failed, rolled back to Y".
+
+The installer refuses to install an older version over a newer one ("downgrade from Y to X"), because an older binary would start on a newer database schema. It also stops with "already at X" for the same version. `DEMO_FORCE=1` overrides both.
+
+The check runs as root, outside the service. It uses the unit's `Environment=` lines, so drop-in overrides count. It does not read `EnvironmentFile=`, and a secret file it cannot read (such as one under `/run/credentials/`) is skipped. A setting that comes only from there is first tested when the service starts, and a failure then triggers the rollback. A `_FILE` variable for a setting that is not a secret, such as `DEMO__BIND_FILE`, must point at a file root can read, or the check fails.
+
+After a rollback, the data the new version left is kept as `/var/lib/private/demo.failed.<backup name>`; delete it by hand once you no longer need it.
+
+If the rollback itself fails, the installer leaves the service stopped and disabled and names the backup directory. To go back by hand, stop the service, then copy from a backup directory: `demo` to the installed binary (`/usr/local/bin/demo` by default, `<prefix>/bin/demo` with `--prefix`), `demo.service` to `/etc/systemd/system/`, and `state` to `/var/lib/private/demo` (`cp -a`, after moving the current one aside). Then run `systemctl daemon-reload` and `systemctl enable --now demo`.
+
+## Installer variables
+
+Set these in the environment of `sh install.sh`. Every question the installer asks has one, so it runs without a terminal.
+
+| Variable | Effect |
+|---|---|
+| `DEMO_FORCE=1` | reinstall the same version, or install an older one |
+| `DEMO_VERIFY` | unset: verify build provenance if `gh` is installed and signed in; `1`: require it; `0`: skip it. Only an online install verifies |
+| `DEMO_PUBLIC_URL` | the address users type; first install |
+| `DEMO_BIND` | the listen address, default `127.0.0.1:8080`; first install |
+| `DEMO_ASSUME_DEFAULTS=1` | take the defaults without asking, even with a terminal |
+
+Without a terminal the installer takes the defaults. If a required value such as `public_url` is missing, it stops before writing anything.
 
 ## TLS on an airgapped network
 

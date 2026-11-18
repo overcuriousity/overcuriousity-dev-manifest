@@ -1,10 +1,10 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use demo::state::{APP, Settings};
 use demo::{app, db, domain};
-use oc_kit::config::{OcConfig, load};
+use oc_kit::config::{OcConfig, load, load_for_check};
 use oc_kit::identity::{password, users};
 use tracing_subscriber::EnvFilter;
 
@@ -22,6 +22,8 @@ struct Cli {
 enum Command {
     /// Run the web server (the default).
     Serve,
+    /// Validate the config without touching data; prints bind and public_url.
+    CheckConfig,
     /// Manage accounts.
     #[command(subcommand)]
     User(UserCommand),
@@ -56,12 +58,15 @@ async fn main() -> ExitCode {
 }
 
 async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
-    let cfg: OcConfig = load(APP, cli.config.as_deref())?;
-    let settings: Settings = cfg.app()?;
-    let pool = db::open(&cfg.data_dir(APP)).await?;
+    let config = cli.config.as_deref();
     match cli.command.unwrap_or(Command::Serve) {
-        Command::Serve => serve(cfg, settings, pool).await,
+        Command::CheckConfig => check_config(config),
+        Command::Serve => {
+            let (cfg, settings, pool) = open(config).await?;
+            serve(cfg, settings, pool).await
+        }
         Command::User(UserCommand::Add { username, admin, display_name }) => {
+            let (_, _, pool) = open(config).await?;
             let pw = password::generate(20);
             let name = display_name.unwrap_or_else(|| username.clone());
             users::create(&pool, &username, &name, admin, Some(&pw), domain::now()).await?;
@@ -69,6 +74,7 @@ async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
             Ok(())
         }
         Command::User(UserCommand::SetPassword { username }) => {
+            let (_, _, pool) = open(config).await?;
             let user = users::by_username(&pool, &username).await?.ok_or(oc_kit::OcError::NotFound)?;
             let pw = password::generate(20);
             users::set_password(&pool, user.id, &pw).await?;
@@ -76,6 +82,20 @@ async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
             Ok(())
         }
     }
+}
+
+fn check_config(config: Option<&Path>) -> Result<(), oc_kit::OcError> {
+    let cfg: OcConfig = load_for_check(APP, config)?;
+    let _: Settings = cfg.app()?;
+    println!("bind={}\npublic_url={}", cfg.bind, cfg.deployment()?.origin);
+    Ok(())
+}
+
+async fn open(config: Option<&Path>) -> Result<(OcConfig, Settings, sqlx::SqlitePool), oc_kit::OcError> {
+    let cfg: OcConfig = load(APP, config)?;
+    let settings: Settings = cfg.app()?;
+    let pool = db::open(&cfg.data_dir(APP)).await?;
+    Ok((cfg, settings, pool))
 }
 
 async fn serve(cfg: OcConfig, settings: Settings, pool: sqlx::SqlitePool) -> Result<(), oc_kit::OcError> {
@@ -92,7 +112,7 @@ async fn serve(cfg: OcConfig, settings: Settings, pool: sqlx::SqlitePool) -> Res
         .await
         .map_err(|e| oc_kit::OcError::Config(format!("Cannot listen on {}: {e}.", cfg.bind)))?;
     tracing::info!("Listening on {}", cfg.deployment()?.origin);
-    let _ = sd_notify::notify(false, &[sd_notify::NotifyState::Ready]);
+    let _ = sd_notify::notify(&[sd_notify::NotifyState::Ready]);
     spawn_watchdog();
     axum::serve(listener, router.into_make_service_with_connect_info::<std::net::SocketAddr>())
         .with_graceful_shutdown(shutdown())
@@ -101,15 +121,14 @@ async fn serve(cfg: OcConfig, settings: Settings, pool: sqlx::SqlitePool) -> Res
 }
 
 fn spawn_watchdog() {
-    let mut usec = 0;
-    if !sd_notify::watchdog_enabled(false, &mut usec) {
+    let Some(timeout) = sd_notify::watchdog_enabled() else {
         return;
-    }
-    let every = std::time::Duration::from_micros(usec / 2);
+    };
+    let every = timeout / 2;
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(every).await;
-            let _ = sd_notify::notify(false, &[sd_notify::NotifyState::Watchdog]);
+            let _ = sd_notify::notify(&[sd_notify::NotifyState::Watchdog]);
         }
     });
 }
@@ -124,5 +143,5 @@ async fn shutdown() {
         _ = ctrl_c => {},
         _ = term.recv() => {},
     }
-    let _ = sd_notify::notify(false, &[sd_notify::NotifyState::Stopping]);
+    let _ = sd_notify::notify(&[sd_notify::NotifyState::Stopping]);
 }

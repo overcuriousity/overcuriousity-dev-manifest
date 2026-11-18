@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 
@@ -16,12 +17,22 @@ pub struct OcConfig {
     pub public_url: Option<Url>,
     /// Accept an `http://` `public_url` on a non-loopback host, for a LAN without TLS.
     pub allow_plain_http: bool,
+    /// More bare host names to answer for, such as a short-link domain, matched case-insensitively.
+    /// Writes still need `public_url`'s origin, so a request from one of these cannot change state.
+    pub extra_hosts: Vec<String>,
     pub bind: SocketAddr,
     pub trusted_proxies: Vec<IpNet>,
     pub data_dir: Option<PathBuf>,
     pub auth: AuthConfig,
     /// The app's own settings under `[app]`, read with [`OcConfig::app`].
     pub app: Option<figment::value::Value>,
+    /// Set by [`load_for_check`], so [`OcConfig::app`] skips unreadable secret files too.
+    #[serde(skip, default = "check_mode")]
+    pub check_only: bool,
+}
+
+fn check_mode() -> bool {
+    NO_READ.with(Cell::get)
 }
 
 impl Default for OcConfig {
@@ -29,11 +40,13 @@ impl Default for OcConfig {
         Self {
             public_url: None,
             allow_plain_http: false,
+            extra_hosts: Vec::new(),
             bind: SocketAddr::from(([127, 0, 0, 1], 8080)),
             trusted_proxies: ["127.0.0.1/32", "::1/128"].iter().filter_map(|s| s.parse().ok()).collect(),
             data_dir: None,
             auth: AuthConfig::default(),
             app: None,
+            check_only: false,
         }
     }
 }
@@ -94,13 +107,35 @@ impl std::fmt::Debug for Secret {
     }
 }
 
+thread_local! {
+    // Deserialize has no way to take options, so `load_for_check` passes this one out of band.
+    static NO_READ: Cell<bool> = const { Cell::new(false) };
+}
+
+struct NoReadGuard;
+
+impl NoReadGuard {
+    fn set() -> Self {
+        NO_READ.with(|f| f.set(true));
+        Self
+    }
+}
+
+impl Drop for NoReadGuard {
+    fn drop(&mut self) {
+        NO_READ.with(|f| f.set(false));
+    }
+}
+
 impl<'de> Deserialize<'de> for Secret {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let raw = String::deserialize(d)?;
         match raw.strip_prefix("file://") {
-            Some(path) => std::fs::read_to_string(path)
-                .map(|s| Secret(s.trim_end_matches(['\n', '\r']).to_owned()))
-                .map_err(|e| serde::de::Error::custom(format!("Cannot read secret file {path}: {e}."))),
+            Some(path) => match std::fs::read_to_string(path) {
+                Ok(s) => Ok(Secret(s.trim_end_matches(['\n', '\r']).to_owned())),
+                Err(_) if NO_READ.with(Cell::get) => Ok(Secret(raw)),
+                Err(e) => Err(serde::de::Error::custom(format!("Cannot read secret file {path}: {e}."))),
+            },
             None => Ok(Secret(raw)),
         }
     }
@@ -109,6 +144,21 @@ impl<'de> Deserialize<'de> for Secret {
 /// Loads `T` from an optional TOML file, then `{APP}__SECTION__KEY` environment variables.
 /// `{APP}__…__NAME_FILE=/path` sets `name` to the contents of that file, for any key.
 pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, OcError> {
+    load_inner(app, file, true)
+}
+
+/// Like [`load`], but a secret file that cannot be read is not an error: `file://` secrets
+/// stay as placeholders and `_FILE` variables merge the literal `file://<path>`. For
+/// `check-config` run outside the service, where `/run/credentials/...` does not exist.
+/// Readable files are read as usual, so non-string keys still type-check. A `_FILE` target for
+/// a key that is not a [`Secret`] must therefore be readable, or the placeholder fails its type.
+/// An [`OcConfig`] loaded this way keeps the mode for [`OcConfig::app`].
+pub fn load_for_check<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, OcError> {
+    let _guard = NoReadGuard::set();
+    load_inner(app, file, false)
+}
+
+fn load_inner<T: DeserializeOwned>(app: &str, file: Option<&Path>, read_files: bool) -> Result<T, OcError> {
     let prefix = format!("{}__", app.to_ascii_uppercase());
     let mut fig = Figment::new();
     if let Some(path) = file {
@@ -126,8 +176,14 @@ pub fn load<T: DeserializeOwned>(app: &str, file: Option<&Path>) -> Result<T, Oc
             continue;
         };
         let key = name.to_ascii_lowercase().replace("__", ".");
-        let content = std::fs::read_to_string(&value)
-            .map_err(|e| OcError::Config(format!("Cannot read {key} from {value}: {e}.")))?;
+        let content = match std::fs::read_to_string(&value) {
+            Ok(c) => c,
+            Err(_) if !read_files => {
+                fig = fig.merge((key, format!("file://{value}")));
+                continue;
+            }
+            Err(e) => return Err(OcError::Config(format!("Cannot read {key} from {value}: {e}."))),
+        };
         let parsed: figment::value::Value = content
             .trim_end_matches(['\n', '\r'])
             .parse()
@@ -147,6 +203,7 @@ pub struct Deployment {
     pub secure_context: bool,
     pub rp_id: String,
     pub public_url: Url,
+    pub extra_hosts: Vec<String>,
     port: u16,
     loopback_dev: bool,
 }
@@ -159,6 +216,10 @@ impl Deployment {
             return LOOPBACK_NAMES
                 .iter()
                 .any(|n| host == format!("{n}:{}", self.port) || (self.port == 80 && host == *n));
+        }
+        let host = host.to_ascii_lowercase();
+        if self.extra_hosts.contains(&host) {
+            return true;
         }
         let expected = self.public_url.host_str().unwrap_or_default();
         match self.public_url.port() {
@@ -178,7 +239,11 @@ impl Deployment {
 impl OcConfig {
     pub fn app<T: DeserializeOwned + Default>(&self) -> Result<T, OcError> {
         match &self.app {
-            Some(v) => v.deserialize().map_err(|e| OcError::Config(format!("Invalid [app] configuration: {e}."))),
+            Some(v) => {
+                let _guard = self.check_only.then(NoReadGuard::set);
+                v.deserialize()
+            }
+            .map_err(|e| OcError::Config(format!("Invalid [app] configuration: {e}."))),
             None => Ok(T::default()),
         }
     }
@@ -200,6 +265,15 @@ impl OcConfig {
     }
 
     pub fn deployment(&self) -> Result<Deployment, OcError> {
+        let mut extra_hosts = Vec::with_capacity(self.extra_hosts.len());
+        for h in &self.extra_hosts {
+            if h.is_empty() || h.contains('/') || h.contains(char::is_whitespace) {
+                return Err(OcError::Config(format!(
+                    "extra_hosts entry {h:?} must be a bare host name, such as s.example.org, without scheme or path."
+                )));
+            }
+            extra_hosts.push(h.to_ascii_lowercase());
+        }
         let loopback_bind = self.bind.ip().is_loopback();
         let Some(url) = &self.public_url else {
             if !loopback_bind {
@@ -212,6 +286,7 @@ impl OcConfig {
                 secure: false,
                 secure_context: true,
                 rp_id: "localhost".into(),
+                extra_hosts: Vec::new(),
                 port: self.bind.port(),
                 loopback_dev: true,
             });
@@ -235,6 +310,7 @@ impl OcConfig {
             secure_context: secure || is_loopback_host,
             rp_id: host,
             public_url: url.clone(),
+            extra_hosts,
             port: url.port_or_known_default().unwrap_or(443),
             loopback_dev: false,
         })

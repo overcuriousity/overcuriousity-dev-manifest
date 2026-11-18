@@ -19,7 +19,7 @@ webauthn-rs = { version = "0.6", features = ["danger-allow-state-serialisation",
 uuid = "1"
 askama = "0.16"
 tower-sessions = "0.15"
-tower-sessions-sqlx-store = { version = "0.15.1", features = ["sqlite"] }
+tower-sessions-sqlx-store = { version = "0.16", features = ["sqlite"] }
 serde_json = "1"
 serde_urlencoded = "0.7"
 urlencoding = "2"
@@ -28,7 +28,7 @@ time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"
 argon2 = { version = "0.5", features = ["std"] }
 rand = "0.10"
 tokio = { version = "1", features = ["rt", "macros", "time", "sync"] }
-tower-http = { version = "0.7", features = ["compression-gzip", "compression-br", "limit", "timeout", "trace", "sensitive-headers"] }
+tower-http = { version = "0.7", features = ["compression-gzip", "compression-br", "trace", "sensitive-headers"] }
 tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 figment = { version = "0.10", features = ["toml", "env"] }
@@ -39,13 +39,13 @@ axum = "0.8"
 rust-embed = { version = "8", features = ["debug-embed", "include-exclude"] }
 sha2 = "0.11"
 hex = "0.4"
+http-body-util = "0.1"
 
 # webauthn-rs links OpenSSL; static musl release builds compile it from source.
 [target.'cfg(target_env = "musl")'.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
 
 [dev-dependencies]
-http-body-util = "0.1"
 url = "2"
 tempfile = "3"
 temp-env = "0.3"

@@ -45,7 +45,7 @@ tar xzf "$work/lucide-static-1.70.0.tgz" -C "$work/lucide"
 tar xzf "$work/htmx.org-2.0.11.tgz" -C "$work/htmx"
 tar xzf "$work/htmx-ext-sse-2.2.4.tgz" -C "$work/sse"
 
-icons=(copy check filter filter-x pin archive trash-2 undo-2 pencil share-2 download search settings x plus history link tag eye eye-off sun moon monitor a-large-small info circle-check triangle-alert circle-x ellipsis chevron-right chevron-down notebook folder user log-out panel-left book-open key-round list)
+icons=(copy check filter filter-x pin archive trash-2 undo-2 pencil share-2 download search settings x plus history link tag eye eye-off sun moon monitor a-large-small info circle-check triangle-alert circle-x ellipsis chevron-right chevron-down notebook folder user log-out panel-left book-open key-round list qr-code upload file)
 rm -f "$assets"/icons/*.svg
 # Sizing and stroke come from CSS, so the SVG keeps only geometry.
 python3 -I - "$work/lucide/package/icons" "$assets/icons" "${icons[@]}" <<'PY'

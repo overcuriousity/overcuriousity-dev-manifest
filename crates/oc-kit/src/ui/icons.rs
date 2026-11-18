@@ -29,7 +29,7 @@ icons! {
     Info => "info", Success => "circle-check", Warning => "triangle-alert", Danger => "circle-x",
     More => "ellipsis", ChevronRight => "chevron-right", ChevronDown => "chevron-down", Notes => "notebook",
     Cases => "folder", Account => "user", SignOut => "log-out", Facets => "panel-left", Story => "book-open",
-    Passkey => "key-round", Timeline => "list",
+    Passkey => "key-round", Timeline => "list", QrCode => "qr-code", Upload => "upload", File => "file",
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
