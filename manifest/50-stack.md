@@ -28,5 +28,5 @@
 
 The kit is the reference implementation of these rules. Read it, copy from it, or depend on it; none is required.
 
-- MAY: depend on it by CalVer tag: `oc-kit = { git = "https://github.com/overcuriousity/overcuriousity-dev-manifest", tag = "v2026.11.1" }`. It is SQLite only.
+- MAY: depend on it by CalVer tag: `oc-kit = { git = "https://github.com/overcuriousity/overcuriousity-dev-manifest", tag = "v2026.11.2" }`. It is SQLite only.
 - MUST, when depending on it: run kit and app migrations with `set_ignore_missing(true)` on both migrators (kit versions are small integers, app versions 14-digit timestamps), and leave the `oc_*` tables to the kit.

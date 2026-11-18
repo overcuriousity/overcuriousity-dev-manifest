@@ -22,7 +22,7 @@ Rules are MUST, SHOULD, NEVER or MAY. Values live in `crates/oc-kit/assets/css/0
 
 1. Copy `templates/` into the new repo: `.github/`, `deny.toml`, `rust-toolchain.toml`, `rustfmt.toml`, the lint table from `templates/lints.toml`, `.gitignore`, `install.sh`, `deploy/`, `scripts/bundle.sh`, `about.toml`, `about.hbs`, `AGENTS.md`, `SECURITY.md`, `CHANGELOG.md`, `config.example.toml`, `AIRGAP.md`. Replace `app` with the binary name.
 2. Implement the rules. `crates/oc-kit/` and `crates/demo/` show how; read or copy from them as needed.
-3. Only if the app depends on the kit (`oc-kit = { git = "https://github.com/overcuriousity/overcuriousity-dev-manifest", tag = "v2026.11.1" }`), wire it the way `crates/demo/src/app.rs` does:
+3. Only if the app depends on the kit (`oc-kit = { git = "https://github.com/overcuriousity/overcuriousity-dev-manifest", tag = "v2026.11.2" }`), wire it the way `crates/demo/src/app.rs` does:
    - `oc_kit::config::load`, `cfg.deployment()`
    - `oc_kit::db::connect`, `migrate_kit`, then the app's migrator with `set_ignore_missing(true)`
    - `AuthState::new`, `session_layer(&pool, app, &dep)`, `auth::router` at `/auth`, `prefs::prefs_router` at `/_oc/prefs`, `resource_metadata_router`
@@ -34,7 +34,7 @@ Rules are MUST, SHOULD, NEVER or MAY. Values live in `crates/oc-kit/assets/css/0
 ## Before you say you are done
 
 - Run `manifest/99-review-checklist.md`.
-- Run `oc-check .`: `cargo install --git https://github.com/overcuriousity/overcuriousity-dev-manifest --tag v2026.11.1 oc-check`.
+- Run `oc-check .`: `cargo install --git https://github.com/overcuriousity/overcuriousity-dev-manifest --tag v2026.11.2 oc-check`.
 - Never commit agent working files (`.superpowers/`, `.claude/`).
 
 ## This repo

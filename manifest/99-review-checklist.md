@@ -17,3 +17,4 @@ Run before declaring work done. `oc-check .` covers the mechanical items; the re
 13. `install.sh` handles first install, update and rollback, and `--archive` stays offline.
 14. `check-config` exists and never touches data.
 15. `/healthz` answers.
+16. Fields that repeat earlier input suggest from the app's own data; Tab takes a word only while a suggestion shows.
