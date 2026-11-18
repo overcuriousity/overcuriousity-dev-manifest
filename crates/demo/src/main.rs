@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
@@ -58,19 +58,15 @@ async fn main() -> ExitCode {
 }
 
 async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
-    if matches!(cli.command, Some(Command::CheckConfig)) {
-        let cfg: OcConfig = load_for_check(APP, cli.config.as_deref())?;
-        let _: Settings = cfg.app()?;
-        println!("bind={}\npublic_url={}", cfg.bind, cfg.deployment()?.origin);
-        return Ok(());
-    }
-    let cfg: OcConfig = load(APP, cli.config.as_deref())?;
-    let settings: Settings = cfg.app()?;
-    let pool = db::open(&cfg.data_dir(APP)).await?;
+    let config = cli.config.as_deref();
     match cli.command.unwrap_or(Command::Serve) {
-        Command::Serve => serve(cfg, settings, pool).await,
-        Command::CheckConfig => unreachable!("handled before the database opens"),
+        Command::CheckConfig => check_config(config),
+        Command::Serve => {
+            let (cfg, settings, pool) = open(config).await?;
+            serve(cfg, settings, pool).await
+        }
         Command::User(UserCommand::Add { username, admin, display_name }) => {
+            let (_, _, pool) = open(config).await?;
             let pw = password::generate(20);
             let name = display_name.unwrap_or_else(|| username.clone());
             users::create(&pool, &username, &name, admin, Some(&pw), domain::now()).await?;
@@ -78,6 +74,7 @@ async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
             Ok(())
         }
         Command::User(UserCommand::SetPassword { username }) => {
+            let (_, _, pool) = open(config).await?;
             let user = users::by_username(&pool, &username).await?.ok_or(oc_kit::OcError::NotFound)?;
             let pw = password::generate(20);
             users::set_password(&pool, user.id, &pw).await?;
@@ -85,6 +82,20 @@ async fn run(cli: Cli) -> Result<(), oc_kit::OcError> {
             Ok(())
         }
     }
+}
+
+fn check_config(config: Option<&Path>) -> Result<(), oc_kit::OcError> {
+    let cfg: OcConfig = load_for_check(APP, config)?;
+    let _: Settings = cfg.app()?;
+    println!("bind={}\npublic_url={}", cfg.bind, cfg.deployment()?.origin);
+    Ok(())
+}
+
+async fn open(config: Option<&Path>) -> Result<(OcConfig, Settings, sqlx::SqlitePool), oc_kit::OcError> {
+    let cfg: OcConfig = load(APP, config)?;
+    let settings: Settings = cfg.app()?;
+    let pool = db::open(&cfg.data_dir(APP)).await?;
+    Ok((cfg, settings, pool))
 }
 
 async fn serve(cfg: OcConfig, settings: Settings, pool: sqlx::SqlitePool) -> Result<(), oc_kit::OcError> {
